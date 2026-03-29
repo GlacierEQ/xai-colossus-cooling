@@ -1,0 +1,11 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "cd dashboard && npm install && npm run build",
+  "outputDirectory": "dashboard/.next",
+  "installCommand": "cd dashboard && npm install",
+  "env": {
+    "COLOSSUS_API_URL": "@colossus_api_url",
+    "COLOSSUS_API_KEY": "@colossus_api_key",
+    "MASTERMIND_URL":   "@mastermind_url"
+  }
+}

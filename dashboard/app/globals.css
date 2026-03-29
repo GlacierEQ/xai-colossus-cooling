@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: dark; }
+body { background: #0a0e1a; }
+
+.glow-blue  { box-shadow: 0 0 12px rgba(0,212,255,0.4); }
+.glow-green { box-shadow: 0 0 12px rgba(0,255,136,0.4); }
+.glow-red   { box-shadow: 0 0 12px rgba(255,60,60,0.4); }
+
+.card {
+  @apply bg-apex-panel border border-apex-border rounded-xl p-4;
+}
