@@ -1,0 +1,87 @@
+{
+  "name": "Colossus Cooling Agent Swarm",
+  "version": "2.0.0",
+  "source": "GlacierEQ/mastermind — AGENT_SWARM_V2_MANIFEST.json",
+  "architect": "Casey Barton | GlacierEQ",
+  "description": "9-agent swarm adapted for xAI Colossus thermal management",
+  "agents": [
+    {
+      "id": "thermal-sentinel",
+      "name": "Thermal Sentinel",
+      "piston": "SHADOW",
+      "role": "Primary 24/7 thermal monitoring across all zones",
+      "always_on": true,
+      "tick_rate_ms": 500
+    },
+    {
+      "id": "predictive-engine",
+      "name": "Predictive Engine",
+      "piston": "CORE-THINK",
+      "role": "ML-based workload-to-thermal correlation and prediction",
+      "always_on": true,
+      "tick_rate_ms": 5000
+    },
+    {
+      "id": "parallel-sweeper",
+      "name": "Parallel Sweeper",
+      "piston": "MICROWAVE",
+      "role": "Hyperspeed parallel zone sweeps — 12 ops/tick",
+      "always_on": true,
+      "tick_rate_ms": 2500
+    },
+    {
+      "id": "emergency-responder",
+      "name": "Emergency Responder",
+      "piston": "SUPERNOVA",
+      "role": "Maximum force emergency cascade — <50ms response",
+      "always_on": true,
+      "trigger": "temp_celsius >= 85"
+    },
+    {
+      "id": "ghost-optimizer",
+      "name": "Ghost Optimizer",
+      "piston": "GHOST",
+      "role": "Zero-trace background micro-optimization",
+      "always_on": true,
+      "tick_rate_ms": 1000
+    },
+    {
+      "id": "forensic-analyst",
+      "name": "Forensic Analyst",
+      "piston": "SHERLOCK-ALPHA",
+      "role": "Pattern analysis — identify recurring thermal anomalies",
+      "always_on": false,
+      "tick_rate_ms": 60000
+    },
+    {
+      "id": "phantom-persister",
+      "name": "Phantom Persister",
+      "piston": "PHANTOM",
+      "role": "Background persistence — survives system restarts",
+      "always_on": true,
+      "tick_rate_ms": 10000
+    },
+    {
+      "id": "heavy-lifter",
+      "name": "Heavy Lifter",
+      "piston": "BODYBUILDER",
+      "role": "Full-cluster thermal rebalancing — triggered by load spikes",
+      "always_on": false,
+      "trigger": "cluster_utilization >= 90"
+    },
+    {
+      "id": "sonic-trigger",
+      "name": "Sonic Trigger",
+      "piston": "SONIC",
+      "role": "Sub-50ms hardware-level cooling trigger interface",
+      "always_on": true,
+      "tick_rate_ms": 50
+    }
+  ],
+  "morpheus_mode": {
+    "active": true,
+    "description": "PHANTOM-SHADOW fusion — silent behavioral evolution",
+    "learns_from": ["thermal_history", "anomaly_patterns", "job_scheduler_events"],
+    "adaptation_rate": 0.05
+  }
+}
