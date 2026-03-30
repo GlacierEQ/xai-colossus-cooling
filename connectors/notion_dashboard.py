@@ -13,7 +13,7 @@ Live ops dashboard integration:
 
 import os
 import logging
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import List, Dict
 
 logger = logging.getLogger('CONNECTOR-NOTION')
@@ -55,7 +55,7 @@ class NotionDashboardConnector:
                     'Mode':       {'select': {'name': mode}},
                     'Nodes':      {'number': node_count},
                     'Anomalies':  {'number': anomalies},
-                    'Updated':    {'date': {'start': datetime.utcnow().isoformat()}}
+                    'Updated':    {'date': {'start': datetime.now(UTC).isoformat()}}
                 }
             )
         except Exception as e:

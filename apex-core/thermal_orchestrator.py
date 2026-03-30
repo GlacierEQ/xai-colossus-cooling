@@ -15,7 +15,7 @@ Treats the datacenter as a living organism:
 import asyncio
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Dict, List, Optional
 from dataclasses import dataclass, field
 from enum import Enum
@@ -42,7 +42,7 @@ class ThermalNode:
     power_watts: float
     cooling_active: bool = False
     alert_level: int = 0  # 0=normal, 1=warm, 2=hot, 3=critical
-    last_updated: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    last_updated: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
     def classify_alert(self):
         if self.temp_celsius >= 85:
@@ -68,11 +68,28 @@ class CoolingZone:
     liquid_cooling_flow_lpm: float = 0.0
 
     def compute_thermals(self):
+        """Re-calculate zone average and peak temperatures from current node telemetry."""
         if not self.nodes:
+            # Maintain 0.0 values if no nodes registered
+            self.avg_temp = 0.0
+            self.peak_temp = 0.0
             return
-        temps = [n.temp_celsius for n in self.nodes]
-        self.avg_temp = sum(temps) / len(temps)
-        self.peak_temp = max(temps)
+
+        # Filter for valid readings (avoid processing sensors reporting non-physical values)
+        # Assuming GPU operational range is between -50°C and 150°C
+        valid_temps = [n.temp_celsius for n in self.nodes if -50 <= n.temp_celsius <= 150]
+
+        if not valid_temps:
+            logger.warning(f"Zone {self.zone_id} has {len(self.nodes)} nodes but no valid temperature readings.")
+            # Reset thermals to avoid using stale data from previous ticks
+            self.avg_temp = 0.0
+            self.peak_temp = 0.0
+            return
+
+        self.avg_temp = sum(valid_temps) / len(valid_temps)
+        self.peak_temp = max(valid_temps)
+
+        # Classify alerts for all nodes to ensure current state is reflected
         for node in self.nodes:
             node.classify_alert()
 
@@ -95,6 +112,45 @@ class APEXPiston:
     
     async def execute(self, context: dict) -> dict:
         raise NotImplementedError
+
+
+class CORETHINKPiston(APEXPiston):
+    """APEX Tier — Deep thermal reasoning and predictive load analysis."""
+
+    def __init__(self):
+        super().__init__('CORE-THINK', 'APEX')
+        self.alpha = 0.01  # Heating coefficient (power -> temp)
+        self.beta = 0.05   # Dissipation factor (ambient gradient)
+
+    async def execute(self, context: dict) -> dict:
+        zones: List[CoolingZone] = context.get('zones', [])
+        forecast = {}
+
+        for zone in zones:
+            if not zone.nodes:
+                continue
+
+            # Mathematical modeling: future temp and zone entropy (variance)
+            node_predictions = []
+            temps = [n.temp_celsius for n in zone.nodes]
+            mean_temp = sum(temps) / len(temps)
+            entropy = sum((t - mean_temp) ** 2 for t in temps) / len(temps)
+
+            for node in zone.nodes:
+                # T_future = T_curr + (P * alpha) - (T_curr - 65) * beta
+                t_future = node.temp_celsius + (node.power_watts * self.alpha) - (node.temp_celsius - 65) * self.beta
+                node_predictions.append({
+                    'node': node.node_id,
+                    't_future': round(t_future, 2)
+                })
+
+            forecast[zone.zone_id] = {
+                'entropy': round(entropy, 4),
+                'nodes': node_predictions,
+                'status': 'unstable' if entropy > 5.0 else 'harmonic'
+            }
+
+        return {'piston': 'CORE-THINK', 'forecast': forecast}
 
 
 class MICROWAVEPiston(APEXPiston):
@@ -208,6 +264,7 @@ class APEXThermalOrchestrator:
         
         # Initialize APEX Pistons
         self.pistons = {
+            'CORE-THINK': CORETHINKPiston(),
             'MICROWAVE': MICROWAVEPiston(),
             'SUPERNOVA': SUPERNOVAPiston(),
             'SHADOW':    SHADOWPiston(),
@@ -227,6 +284,10 @@ class APEXThermalOrchestrator:
         self.tick += 1
         self.logger.debug(f'--- TICK {self.tick} ---')
         
+        # Always-on: CORE-THINK predictive reasoning
+        core_think_ctx = {'zones': self.zones, 'trigger': f'tick_{self.tick}'}
+        core_think_forecast = await self.pistons['CORE-THINK'].activate(core_think_ctx)
+
         # Always-on: SHADOW silent monitoring
         shadow_ctx = {'all_nodes': self.all_nodes, 'trigger': f'tick_{self.tick}'}
         shadow_result = await self.pistons['SHADOW'].activate(shadow_ctx)

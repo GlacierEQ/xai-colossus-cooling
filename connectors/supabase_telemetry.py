@@ -13,7 +13,7 @@ Persists all thermal telemetry to Supabase for:
 import os
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import List, Dict, Optional
 
 logger = logging.getLogger('CONNECTOR-SUPABASE')
@@ -56,7 +56,7 @@ class SupabaseTelemetryConnector:
             'zone_id': zone_id,
             'temp_celsius': temp,
             'alert_level': alert_level,
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.now(UTC).isoformat()
         }
         await self._insert(self.TABLES['thermal_events'], payload)
     
@@ -66,7 +66,7 @@ class SupabaseTelemetryConnector:
             'deviation_celsius': deviation,
             'baseline_celsius': baseline,
             'severity': 'HIGH' if deviation > 15 else 'MEDIUM' if deviation > 8 else 'LOW',
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.now(UTC).isoformat()
         }
         await self._insert(self.TABLES['anomalies'], payload)
     
@@ -76,7 +76,7 @@ class SupabaseTelemetryConnector:
             'tier': tier,
             'trigger': trigger,
             'result_summary': json.dumps(result)[:500],
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.now(UTC).isoformat()
         }
         await self._insert(self.TABLES['piston_activations'], payload)
     
@@ -86,7 +86,7 @@ class SupabaseTelemetryConnector:
             'max_temp_celsius': max_temp,
             'nodes': json.dumps(critical_nodes),
             'actions_taken': json.dumps(actions)[:1000],
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.now(UTC).isoformat()
         }
         await self._insert(self.TABLES['emergency_log'], payload)
     
