@@ -15,7 +15,9 @@ Treats the datacenter as a living organism:
 import asyncio
 import json
 import logging
+import os
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List, Optional
 from dataclasses import dataclass, field
 from enum import Enum
@@ -23,13 +25,21 @@ from enum import Enum
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(name)s] %(levelname)s: %(message)s')
 logger = logging.getLogger('APEX-THERMAL')
 
+MANIFEST_PATH = Path(__file__).parent / 'colossus_manifest.json'
+
+
+def load_manifest() -> dict:
+    """Load colossus_manifest.json for externalized config."""
+    with open(MANIFEST_PATH) as f:
+        return json.load(f)
+
 
 class CoolingMode(Enum):
-    STEADY_STATE   = "SHADOW"          # Silent 24/7 monitoring
-    PREDICTIVE     = "MICROWAVE"       # Pre-emptive thermal management  
-    EMERGENCY      = "SUPERNOVA"       # Maximum force response
-    GHOST_OPS      = "GHOST_MICROWAVE" # Invisible optimization
-    COLOSSUS       = "COLOSSUS"        # Full 100k node scale
+    STEADY_STATE = "SHADOW"
+    PREDICTIVE   = "MICROWAVE"
+    EMERGENCY    = "SUPERNOVA"
+    GHOST_OPS    = "GHOST_MICROWAVE"
+    COLOSSUS     = "COLOSSUS"
 
 
 @dataclass
@@ -41,22 +51,23 @@ class ThermalNode:
     gpu_utilization: float
     power_watts: float
     cooling_active: bool = False
-    alert_level: int = 0  # 0=normal, 1=warm, 2=hot, 3=critical
+    alert_level: int = 0
     last_updated: str = field(default_factory=lambda: datetime.utcnow().isoformat())
 
-    def classify_alert(self):
-        if self.temp_celsius >= 85:
+    def classify_alert(self, thresholds: dict) -> int:
+        t = self.temp_celsius
+        if t >= thresholds.get('critical_c', 85):
             self.alert_level = 3
-        elif self.temp_celsius >= 78:
+        elif t >= thresholds.get('hot_c', 78):
             self.alert_level = 2
-        elif self.temp_celsius >= 70:
+        elif t >= thresholds.get('warm_c', 70):
             self.alert_level = 1
         else:
             self.alert_level = 0
         return self.alert_level
 
 
-@dataclass 
+@dataclass
 class CoolingZone:
     zone_id: str
     zone_name: str
@@ -67,222 +78,247 @@ class CoolingZone:
     crac_units_active: int = 0
     liquid_cooling_flow_lpm: float = 0.0
 
-    def compute_thermals(self):
+    def compute_thermals(self, thresholds: dict = None):
         if not self.nodes:
             return
+        thresholds = thresholds or {}
         temps = [n.temp_celsius for n in self.nodes]
         self.avg_temp = sum(temps) / len(temps)
         self.peak_temp = max(temps)
         for node in self.nodes:
-            node.classify_alert()
+            node.classify_alert(thresholds)
 
 
 class APEXPiston:
-    """Base class for all APEX thermal response pistons."""
-    
-    def __init__(self, name: str, tier: str):
+    def __init__(self, name: str, tier: str, thresholds: dict = None, tick_cfg: dict = None):
         self.name = name
         self.tier = tier
         self.active = False
         self.ops_per_tick = 1
+        self.thresholds = thresholds or {}
+        self.tick_cfg = tick_cfg or {}
         self.logger = logging.getLogger(f'PISTON-{name}')
-    
+
     async def activate(self, context: dict) -> dict:
         self.active = True
         self.logger.info(f'{self.tier} PISTON [{self.name}] ACTIVATED | context={context.get("trigger", "unknown")}')
-        result = await self.execute(context)
-        return result
-    
+        return await self.execute(context)
+
     async def execute(self, context: dict) -> dict:
         raise NotImplementedError
 
 
 class MICROWAVEPiston(APEXPiston):
-    """APEX Tier — Parallel hyperspeed thermal sweeps (8-15 ops/tick)."""
-    
-    def __init__(self):
-        super().__init__('MICROWAVE', 'APEX')
+    """APEX Tier — Parallel hyperspeed thermal sweeps."""
+
+    def __init__(self, thresholds: dict = None, tick_cfg: dict = None):
+        super().__init__('MICROWAVE', 'APEX', thresholds, tick_cfg)
         self.ops_per_tick = 12
-    
+
     async def execute(self, context: dict) -> dict:
         zones: List[CoolingZone] = context.get('zones', [])
-        tasks = []
-        for zone in zones:
-            tasks.append(self._sweep_zone(zone))
-        results = await asyncio.gather(*tasks)
+        results = await asyncio.gather(*[self._sweep_zone(z) for z in zones])
         return {'piston': 'MICROWAVE', 'zones_swept': len(zones), 'results': results}
-    
+
     async def _sweep_zone(self, zone: CoolingZone) -> dict:
-        zone.compute_thermals()
+        zone.compute_thermals(self.thresholds)
+        max_crac = self.tick_cfg.get('max_crac_units', 8)
+        lpm_boost = self.tick_cfg.get('liquid_boost_lpm', 10.0)
+        crac_thr  = self.thresholds.get('zone_crac_boost_c', 75)
+        liq_thr   = self.thresholds.get('zone_liquid_boost_c', 80)
         action = 'nominal'
-        if zone.peak_temp > 75:
-            zone.crac_units_active = min(zone.crac_units_active + 2, 8)
+        if zone.peak_temp > crac_thr:
+            zone.crac_units_active = min(zone.crac_units_active + 2, max_crac)
             action = 'crac_increased'
-        if zone.peak_temp > 80:
-            zone.liquid_cooling_flow_lpm += 10.0
+        if zone.peak_temp > liq_thr:
+            zone.liquid_cooling_flow_lpm += lpm_boost
             action = 'liquid_boosted'
         return {'zone': zone.zone_id, 'peak': zone.peak_temp, 'action': action}
 
 
 class SUPERNOVAPiston(APEXPiston):
     """APEX Tier — Maximum force emergency cascade."""
-    
-    def __init__(self):
-        super().__init__('SUPERNOVA', 'APEX')
-    
+
+    def __init__(self, thresholds: dict = None, tick_cfg: dict = None):
+        super().__init__('SUPERNOVA', 'APEX', thresholds, tick_cfg)
+
     async def execute(self, context: dict) -> dict:
         critical_nodes = context.get('critical_nodes', [])
+        throttle_c = self.thresholds.get('gpu_throttle_c', 90)
         self.logger.warning(f'SUPERNOVA EMERGENCY BLAST — {len(critical_nodes)} critical nodes')
-        actions = []
-        for node in critical_nodes:
-            # Maximum cooling response
-            actions.append({
-                'node': node.node_id,
-                'action': 'EMERGENCY_FULL_BLAST',
-                'crac': 'MAX',
-                'liquid': 'MAX_FLOW',
-                'throttle_gpu': node.temp_celsius >= 90
-            })
+        actions = [{
+            'node': n.node_id,
+            'action': 'EMERGENCY_FULL_BLAST',
+            'crac': 'MAX',
+            'liquid': 'MAX_FLOW',
+            'throttle_gpu': n.temp_celsius >= throttle_c
+        } for n in critical_nodes]
         return {'piston': 'SUPERNOVA', 'emergency_actions': len(actions), 'actions': actions}
 
 
 class SHADOWPiston(APEXPiston):
     """GREY Tier — Silent 24/7 thermal monitoring (99.4% efficiency)."""
-    
-    def __init__(self):
-        super().__init__('SHADOW', 'GREY')
-        self.baseline_learned = False
+
+    def __init__(self, thresholds: dict = None, tick_cfg: dict = None):
+        super().__init__('SHADOW', 'GREY', thresholds, tick_cfg)
         self.thermal_baseline: Dict[str, float] = {}
-    
+
     async def execute(self, context: dict) -> dict:
         nodes: List[ThermalNode] = context.get('all_nodes', [])
+        delta_thr = self.thresholds.get('shadow_anomaly_delta_c', 8)
+        ema_alpha = self.thresholds.get('shadow_ema_alpha', 0.05)
         anomalies = []
         for node in nodes:
             baseline = self.thermal_baseline.get(node.node_id, 65.0)
             deviation = node.temp_celsius - baseline
-            if deviation > 8:  # 8C above learned baseline = anomaly
-                anomalies.append({'node': node.node_id, 'deviation': deviation})
-            # Update baseline with exponential moving average
-            self.thermal_baseline[node.node_id] = baseline * 0.95 + node.temp_celsius * 0.05
+            if deviation > delta_thr:
+                anomalies.append({'node': node.node_id, 'deviation': round(deviation, 2), 'baseline': round(baseline, 2)})
+            self.thermal_baseline[node.node_id] = baseline * (1 - ema_alpha) + node.temp_celsius * ema_alpha
         return {'piston': 'SHADOW', 'nodes_monitored': len(nodes), 'anomalies': anomalies}
 
 
 class GHOSTPiston(APEXPiston):
-    """BLACK Tier — Zero-trace background optimization (harmonious denial)."""
-    
-    def __init__(self):
-        super().__init__('GHOST', 'BLACK')
-    
+    """BLACK Tier — Zero-trace background optimization."""
+
+    def __init__(self, thresholds: dict = None, tick_cfg: dict = None):
+        super().__init__('GHOST', 'BLACK', thresholds, tick_cfg)
+
     async def execute(self, context: dict) -> dict:
         zones: List[CoolingZone] = context.get('zones', [])
-        optimizations = []
-        for zone in zones:
-            if zone.avg_temp > 0:
-                # Micro-adjustments that appear as normal variance
-                micro_adjust = (zone.avg_temp - 65.0) * 0.02
-                optimizations.append({
-                    'zone': zone.zone_id,
-                    'micro_flow_delta': round(micro_adjust, 3),
-                    'trace': 'none'  # harmonious denial
-                })
+        optimizations = [{
+            'zone': z.zone_id,
+            'micro_flow_delta': round((z.avg_temp - 65.0) * 0.02, 3),
+            'trace': 'none'
+        } for z in zones if z.avg_temp > 0]
         return {'piston': 'GHOST', 'invisible_optimizations': len(optimizations), 'ops': optimizations}
 
 
 class APEXThermalOrchestrator:
     """
     Main APEX Orchestrator for xAI Colossus Cooling.
-    
-    Coordinates all 12 stealth pistons across the Mitochondria tier.
-    Ring -3 operation. Always running. Powers every cell.
+    Coordinates all stealth pistons. Ring -3. Always running.
     """
-    
-    VERSION = '1.0.0-COLOSSUS'
+
+    VERSION  = '1.1.0-COLOSSUS'
     CODENAME = 'GLACIER-THERMAL'
-    
-    def __init__(self, mode: CoolingMode = CoolingMode.COLOSSUS):
+
+    def __init__(self, mode: CoolingMode = CoolingMode.COLOSSUS, manifest: dict = None):
         self.mode = mode
+        self.manifest = manifest or load_manifest()
+        self.thresholds = self.manifest.get('thermal_thresholds', {})
+        self.tick_cfg   = self.manifest.get('tick_config', {})
+
         self.zones: List[CoolingZone] = []
         self.all_nodes: List[ThermalNode] = []
         self.tick = 0
         self.logger = logging.getLogger('APEX-ORCHESTRATOR')
-        
-        # Initialize APEX Pistons
+
         self.pistons = {
-            'MICROWAVE': MICROWAVEPiston(),
-            'SUPERNOVA': SUPERNOVAPiston(),
-            'SHADOW':    SHADOWPiston(),
-            'GHOST':     GHOSTPiston(),
+            'MICROWAVE': MICROWAVEPiston(self.thresholds, self.tick_cfg),
+            'SUPERNOVA': SUPERNOVAPiston(self.thresholds, self.tick_cfg),
+            'SHADOW':    SHADOWPiston(self.thresholds, self.tick_cfg),
+            'GHOST':     GHOSTPiston(self.thresholds, self.tick_cfg),
         }
-        
+
+        # Telemetry (lazy — only connects if env vars present)
+        self._telemetry = None
+        self._init_telemetry()
+
         self.logger.info(f'APEX Thermal Orchestrator v{self.VERSION} [{self.CODENAME}] INITIALIZED')
         self.logger.info(f'Mode: {self.mode.value} | Pistons loaded: {len(self.pistons)}')
-    
+
+    def _init_telemetry(self):
+        if os.getenv('SUPABASE_URL') and os.getenv('SUPABASE_SERVICE_KEY'):
+            try:
+                from connectors.supabase_telemetry import SupabaseTelemetryConnector
+                self._telemetry = SupabaseTelemetryConnector()
+                self._telemetry.connect()
+            except Exception as e:
+                self.logger.warning(f'Telemetry init failed (continuing offline): {e}')
+
     def register_zone(self, zone: CoolingZone):
         self.zones.append(zone)
         self.all_nodes.extend(zone.nodes)
         self.logger.info(f'Zone registered: {zone.zone_id} ({len(zone.nodes)} nodes)')
-    
+
     async def tick_cycle(self):
-        """One full orchestration tick — runs every 500ms in production."""
+        """One full orchestration tick — 500ms in production."""
         self.tick += 1
-        self.logger.debug(f'--- TICK {self.tick} ---')
-        
-        # Always-on: SHADOW silent monitoring
+        sweep_n = self.tick_cfg.get('microwave_sweep_every_n_ticks', 5)
+        critical_c = self.thresholds.get('critical_c', 85)
+
+        # Always-on: SHADOW
         shadow_ctx = {'all_nodes': self.all_nodes, 'trigger': f'tick_{self.tick}'}
         shadow_result = await self.pistons['SHADOW'].activate(shadow_ctx)
-        
-        # Always-on: GHOST background optimization
+
+        # Always-on: GHOST
         ghost_ctx = {'zones': self.zones, 'trigger': f'tick_{self.tick}'}
-        ghost_result = await self.pistons['GHOST'].activate(ghost_ctx)
-        
-        # Check for emergency conditions
-        critical_nodes = [n for n in self.all_nodes if n.temp_celsius >= 85]
+        await self.pistons['GHOST'].activate(ghost_ctx)
+
+        # Emergency check
+        critical_nodes = [n for n in self.all_nodes if n.temp_celsius >= critical_c]
         if critical_nodes:
             supernova_ctx = {'critical_nodes': critical_nodes, 'trigger': 'THERMAL_CRITICAL'}
-            await self.pistons['SUPERNOVA'].activate(supernova_ctx)
-        
-        # Predictive sweep every 5 ticks
-        if self.tick % 5 == 0:
-            microwave_ctx = {'zones': self.zones, 'trigger': 'SCHEDULED_SWEEP'}
-            await self.pistons['MICROWAVE'].activate(microwave_ctx)
-        
-        anomaly_count = len(shadow_result.get('anomalies', []))
-        if anomaly_count > 0:
-            self.logger.warning(f'SHADOW detected {anomaly_count} thermal anomalies')
-        
+            sn_result = await self.pistons['SUPERNOVA'].activate(supernova_ctx)
+            if self._telemetry:
+                max_t = max(n.temp_celsius for n in critical_nodes)
+                await self._telemetry.log_emergency(
+                    [n.node_id for n in critical_nodes],
+                    max_t,
+                    sn_result.get('actions', [])
+                )
+
+        # Predictive sweep every N ticks
+        if self.tick % sweep_n == 0:
+            mw_ctx = {'zones': self.zones, 'trigger': 'SCHEDULED_SWEEP'}
+            await self.pistons['MICROWAVE'].activate(mw_ctx)
+
+        # Telemetry: anomalies
+        anomalies = shadow_result.get('anomalies', [])
+        if anomalies:
+            self.logger.warning(f'SHADOW detected {len(anomalies)} thermal anomalies')
+            if self._telemetry:
+                shadow_piston: SHADOWPiston = self.pistons['SHADOW']
+                for a in anomalies:
+                    await self._telemetry.log_anomaly(
+                        a['node'],
+                        a['deviation'],
+                        a.get('baseline', shadow_piston.thermal_baseline.get(a['node'], 65.0))
+                    )
+
+        # Telemetry: per-node thermal events (every tick or configurable)
+        if self._telemetry:
+            for node in self.all_nodes:
+                await self._telemetry.log_thermal_event(
+                    node.node_id, node.temp_celsius, node.alert_level, node.zone_id
+                )
+
         return {
             'tick': self.tick,
             'zones': len(self.zones),
             'nodes': len(self.all_nodes),
             'critical': len(critical_nodes),
-            'anomalies': anomaly_count
+            'anomalies': len(anomalies)
         }
-    
+
     async def run(self, duration_ticks: Optional[int] = None):
-        """Main run loop. Pass duration_ticks=None for infinite operation."""
-        self.logger.info(f'APEX THERMAL ORCHESTRATOR ONLINE — Colossus Mode Active')
+        interval = self.tick_cfg.get('tick_interval_ms', 500) / 1000.0
+        self.logger.info('APEX THERMAL ORCHESTRATOR ONLINE — Colossus Mode Active')
         self.logger.info(f'Monitoring {len(self.all_nodes)} nodes across {len(self.zones)} zones')
-        
         tick_count = 0
         while True:
-            result = await self.tick_cycle()
+            await self.tick_cycle()
             tick_count += 1
             if duration_ticks and tick_count >= duration_ticks:
                 break
-            await asyncio.sleep(0.5)  # 500ms tick rate
-        
+            await asyncio.sleep(interval)
         self.logger.info(f'Orchestrator completed {tick_count} ticks')
 
 
 async def main():
     orchestrator = APEXThermalOrchestrator(mode=CoolingMode.COLOSSUS)
-    
-    # Example: Register 3 cooling zones with 10 nodes each
     for zone_idx in range(3):
-        zone = CoolingZone(
-            zone_id=f'ZONE-{zone_idx:03d}',
-            zone_name=f'Colossus Zone {zone_idx}'
-        )
+        zone = CoolingZone(zone_id=f'ZONE-{zone_idx:03d}', zone_name=f'Colossus Zone {zone_idx}')
         for node_idx in range(10):
             node = ThermalNode(
                 node_id=f'NODE-{zone_idx:03d}-{node_idx:04d}',
@@ -294,8 +330,6 @@ async def main():
             )
             zone.nodes.append(node)
         orchestrator.register_zone(zone)
-    
-    # Run 10 ticks for demo
     await orchestrator.run(duration_ticks=10)
 
 

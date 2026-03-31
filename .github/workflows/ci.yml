@@ -1,0 +1,50 @@
+name: APEX Colossus Cooling — CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Pytest — Thermal Core
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install pytest pytest-asyncio
+
+      - name: Run APEX thermal core tests
+        run: |
+          pytest tests/ -v --tb=short
+
+  simulation:
+    name: Simulation Smoke Test
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install pytest pytest-asyncio
+
+      - name: Run simulation smoke (spike scenario, 3 zones, 10 nodes, 20 ticks)
+        run: |
+          python simulation/sim_harness.py --zones 3 --nodes-per-zone 10 --ticks 20 --scenario spike
