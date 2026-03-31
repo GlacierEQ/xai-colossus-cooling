@@ -23,14 +23,14 @@ jobs:
           pip install asyncio dataclasses typing
       
       - name: Validate thermal orchestrator
-        run: python -c "import apex-core.thermal_orchestrator; print('APEX Thermal Orchestrator: OK')"
+        run: python -c "import apex_core.thermal_orchestrator; print('APEX Thermal Orchestrator: OK')"
         continue-on-error: true
 
       - name: Validate manifest
         run: |
           python -c "
 import json
-with open('apex-core/colossus_manifest.json') as f:
+with open('apex_core/colossus_manifest.json') as f:
     m = json.load(f)
 print(f'Manifest loaded: {m[\"system\"]}')
 print(f'Pistons: {len(m[\"active_pistons\"])}')
@@ -42,7 +42,7 @@ print(f'Connectors: {len(m[\"connectors\"])}')
           echo "=== APEX COLOSSUS COOLING — PISTON STATUS ==="
           python -c "
 import json
-with open('apex-core/colossus_manifest.json') as f:
+with open('apex_core/colossus_manifest.json') as f:
     m = json.load(f)
 for p in m['active_pistons']:
     print(f'  [{p[\"tier\"]}] {p[\"name\"]}: {p[\"role\"]}')

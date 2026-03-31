@@ -31,7 +31,7 @@ Built on the GlacierEQ APEX architecture — a proven sovereign AI operating sys
 
 ```
 xai-colossus-cooling/
-├── apex-core/              # APEX orchestration engine
+├── apex_core/              # APEX orchestration engine
 │   ├── thermal_orchestrator.py
 │   ├── predictive_load_model.py
 │   └── colossus_manifest.json
@@ -113,7 +113,7 @@ xai-colossus-cooling/
 # Initialize APEX Cooling Stack
 git clone https://github.com/GlacierEQ/xai-colossus-cooling
 cd xai-colossus-cooling
-python apex-core/thermal_orchestrator.py --mode=COLOSSUS --scale=100k
+python apex_core/thermal_orchestrator.py --mode=COLOSSUS --scale=100k
 ```
 
 ---
