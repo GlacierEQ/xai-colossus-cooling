@@ -107,6 +107,17 @@ xai-colossus-cooling/
 
 ---
 
+## 🔬 Executive & Strategic Review
+
+For a deep-dive into the architectural principles, physics-based thermal modeling, and strategic implementation of the **12 Stealth Pistons**, see the executive review directory:
+
+👉 **[ELON MUSK REVIEW](elon_musk/)**
+- **[THE ALGORITHM](elon_musk/THE_ALGORITHM.md)**: 5-step engineering process mapping.
+- **[FIRST PRINCIPLES](elon_musk/FIRST_PRINCIPLES.md)**: Physics-first thermal forecasting.
+- **[STRATEGIC INTEL](elon_musk/STRATEGIC_INTEL.md)**: Bio-inspired agent orchestration.
+
+---
+
 ## 🚀 Deployment
 
 ```bash
