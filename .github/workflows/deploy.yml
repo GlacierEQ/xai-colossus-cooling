@@ -23,8 +23,9 @@ jobs:
           pip install asyncio dataclasses typing
       
       - name: Validate thermal orchestrator
-        run: python -c "import apex_core.thermal_orchestrator; print('APEX Thermal Orchestrator: OK')"
-        continue-on-error: true
+        run: |
+          export PYTHONPATH=$PYTHONPATH:.
+          python -c "import apex_core.thermal_orchestrator; print('APEX Thermal Orchestrator: OK')"
 
       - name: Validate manifest
         run: |
