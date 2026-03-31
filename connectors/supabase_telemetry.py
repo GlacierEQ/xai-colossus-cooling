@@ -3,17 +3,14 @@
 Supabase Telemetry Connector — xAI Colossus Cooling
 GlacierEQ APEX Architecture
 
-Persists all thermal telemetry to Supabase for:
-  - Time-series thermal data storage
-  - Anomaly log persistence  
-  - Real-time dashboard feeds
-  - Historical trend analysis
+Persists all thermal telemetry to Supabase.
+Prioritizes schema from database/supabase_schema.sql if available.
 """
 
 import os
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import List, Dict, Optional
 
 logger = logging.getLogger('CONNECTOR-SUPABASE')
@@ -38,8 +35,17 @@ class SupabaseTelemetryConnector:
         self.key = os.getenv('SUPABASE_SERVICE_KEY', '')
         self.connected = False
         self._client = None
+        self.schema = self._load_schema()
         logger.info('Supabase Telemetry Connector initialized')
     
+    def _load_schema(self) -> str:
+        """Load schema from SQL file or fallback to hardcoded string."""
+        schema_path = os.path.join(os.path.dirname(__file__), '../database/supabase_schema.sql')
+        if os.path.exists(schema_path):
+            with open(schema_path, 'r') as f:
+                return f.read()
+        return DEFAULT_SUPABASE_SCHEMA
+
     def connect(self):
         try:
             from supabase import create_client
@@ -56,7 +62,7 @@ class SupabaseTelemetryConnector:
             'zone_id': zone_id,
             'temp_celsius': temp,
             'alert_level': alert_level,
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.now(UTC).isoformat()
         }
         await self._insert(self.TABLES['thermal_events'], payload)
     
@@ -66,17 +72,17 @@ class SupabaseTelemetryConnector:
             'deviation_celsius': deviation,
             'baseline_celsius': baseline,
             'severity': 'HIGH' if deviation > 15 else 'MEDIUM' if deviation > 8 else 'LOW',
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.now(UTC).isoformat()
         }
         await self._insert(self.TABLES['anomalies'], payload)
     
-    async def log_piston_activation(self, piston_name: str, tier: str, trigger: str, result: dict):
+    async def log_piston_activation(self, piston_name: str, tier: str, trigger: str, result_summary: dict):
         payload = {
             'piston': piston_name,
             'tier': tier,
             'trigger': trigger,
-            'result_summary': json.dumps(result)[:500],
-            'timestamp': datetime.utcnow().isoformat()
+            'result_summary': json.dumps(result_summary)[:500],
+            'timestamp': datetime.now(UTC).isoformat()
         }
         await self._insert(self.TABLES['piston_activations'], payload)
     
@@ -86,7 +92,7 @@ class SupabaseTelemetryConnector:
             'max_temp_celsius': max_temp,
             'nodes': json.dumps(critical_nodes),
             'actions_taken': json.dumps(actions)[:1000],
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.now(UTC).isoformat()
         }
         await self._insert(self.TABLES['emergency_log'], payload)
     
@@ -100,10 +106,9 @@ class SupabaseTelemetryConnector:
             logger.error(f'Supabase insert failed [{table}]: {e}')
 
 
-# Schema for Supabase setup
-SUPABASE_SCHEMA = """
--- Run this in your Supabase SQL editor to set up Colossus Cooling tables
-
+# Fallback schema for Supabase setup
+DEFAULT_SUPABASE_SCHEMA = """
+-- colossus_thermal_events
 CREATE TABLE IF NOT EXISTS colossus_thermal_events (
     id BIGSERIAL PRIMARY KEY,
     node_id TEXT NOT NULL,
@@ -112,35 +117,4 @@ CREATE TABLE IF NOT EXISTS colossus_thermal_events (
     alert_level INTEGER DEFAULT 0,
     timestamp TIMESTAMPTZ DEFAULT NOW()
 );
-
-CREATE TABLE IF NOT EXISTS colossus_anomalies (
-    id BIGSERIAL PRIMARY KEY,
-    node_id TEXT NOT NULL,
-    deviation_celsius NUMERIC(5,2),
-    baseline_celsius NUMERIC(5,2),
-    severity TEXT DEFAULT 'LOW',
-    timestamp TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS colossus_piston_log (
-    id BIGSERIAL PRIMARY KEY,
-    piston TEXT NOT NULL,
-    tier TEXT NOT NULL,
-    trigger TEXT,
-    result_summary TEXT,
-    timestamp TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS colossus_emergency_log (
-    id BIGSERIAL PRIMARY KEY,
-    critical_node_count INTEGER,
-    max_temp_celsius NUMERIC(5,2),
-    nodes JSONB,
-    actions_taken JSONB,
-    timestamp TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Enable real-time on thermal events
-ALTER PUBLICATION supabase_realtime ADD TABLE colossus_thermal_events;
-ALTER PUBLICATION supabase_realtime ADD TABLE colossus_anomalies;
 """

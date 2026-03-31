@@ -31,7 +31,7 @@ Built on the GlacierEQ APEX architecture — a proven sovereign AI operating sys
 
 ```
 xai-colossus-cooling/
-├── apex-core/              # APEX orchestration engine
+├── apex_core/              # APEX orchestration engine
 │   ├── thermal_orchestrator.py
 │   ├── predictive_load_model.py
 │   └── colossus_manifest.json
@@ -107,23 +107,34 @@ xai-colossus-cooling/
 
 ---
 
+## 🔬 Executive & Strategic Review
+
+For a deep-dive into the architectural principles, physics-based thermal modeling, and strategic implementation of the **12 Stealth Pistons**, see the executive review directory:
+
+👉 **[ELON MUSK REVIEW](elon_musk/)**
+- **[THE ALGORITHM](elon_musk/THE_ALGORITHM.md)**: 5-step engineering process mapping.
+- **[FIRST PRINCIPLES](elon_musk/FIRST_PRINCIPLES.md)**: Physics-first thermal forecasting.
+- **[STRATEGIC INTEL](elon_musk/STRATEGIC_INTEL.md)**: Bio-inspired agent orchestration.
+
+---
+
 ## 🚀 Deployment
 
 ```bash
 # Initialize APEX Cooling Stack
 git clone https://github.com/GlacierEQ/xai-colossus-cooling
 cd xai-colossus-cooling
-python apex-core/thermal_orchestrator.py --mode=COLOSSUS --scale=100k
+python apex_core/thermal_orchestrator.py --mode=COLOSSUS --scale=100k
 ```
 
 ---
 
 ## 👤 About the Architect
 
-**Casey Barton** is a systems architect and sovereign AI stack builder based in Honolulu, Hawaii.  
+**Casey Barton** is a systems architect, marine biologist, and sovereign AI stack builder based in Honolulu, Hawaii.
 Creator of the **APEX architecture** — a bio-inspired, multi-tier agent operating system powering 800+ repositories across the GlacierEQ empire.
 
-This cooling system is a direct application of APEX principles to physical infrastructure intelligence — proving that the same architecture that runs legal AI warfare, forensic analysis, and enterprise automation can also manage the thermal heartbeat of the world's most powerful AI clusters.
+By bridging the principles of **Marine Biology** (complex ecosystem homeostasis, fluid dynamics) with high-performance systems engineering, this cooling system treats the xAI Colossus cluster as a living organism. It proves that biological feedback loops are the most efficient model for managing the thermal heartbeat of the world's most powerful AI clusters.
 
 > *"The datacenter is alive. Treat it like one."*
 

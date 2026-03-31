@@ -13,7 +13,7 @@ DuckDB-powered analytics engine for:
 
 import os
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, UTC, timedelta
 from typing import List, Dict, Optional
 
 logger = logging.getLogger('CONNECTOR-MOTHERDUCK')
@@ -68,7 +68,7 @@ class MotherDuckAnalyticsConnector:
         if not self.conn or not records:
             return
         rows = [
-            (r.get('timestamp', datetime.utcnow()),
+            (r.get('timestamp', datetime.now(UTC)),
              r['node_id'], r['zone_id'],
              r['temp_celsius'], r.get('power_kw', 0.0),
              r.get('alert_level', 0))
