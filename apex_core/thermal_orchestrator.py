@@ -16,7 +16,7 @@ import asyncio
 import json
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, UTC
 from pathlib import Path
 from typing import Dict, List, Optional
 from dataclasses import dataclass, field
@@ -52,7 +52,7 @@ class ThermalNode:
     power_watts: float
     cooling_active: bool = False
     alert_level: int = 0
-    last_updated: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    last_updated: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
     def classify_alert(self, thresholds: dict) -> int:
         t = self.temp_celsius
