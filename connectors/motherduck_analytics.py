@@ -86,24 +86,24 @@ class MotherDuckAnalyticsConnector:
                    MAX(temp_c)  AS peak_temp,
                    COUNT(*)     AS event_count
             FROM thermal_history
-            WHERE ts > NOW() - INTERVAL '60 minutes'
+            WHERE ts > NOW() - (INTERVAL '1 minute' * ?)
               AND alert_level >= 1
             GROUP BY zone_id
             ORDER BY peak_temp DESC
-        """).fetchall()
+        """, (window_minutes,)).fetchall()
         return [{'zone_id': r[0], 'avg_temp': r[1], 'peak_temp': r[2], 'events': r[3]} for r in result]
     
     def query_pue_trend(self, days: int = 7) -> List[Dict]:
         """Calculate PUE trend over last N days."""
-        result = self.conn.execute(f"""
+        result = self.conn.execute("""
             SELECT DATE_TRUNC('hour', ts) AS hour,
                    AVG(pue) AS avg_pue,
                    MIN(pue) AS best_pue
             FROM pue_log
-            WHERE ts > NOW() - INTERVAL '{days} days'
+            WHERE ts > NOW() - (INTERVAL '1 day' * ?)
             GROUP BY 1
             ORDER BY 1
-        """).fetchall()
+        """, (days,)).fetchall()
         return [{'hour': str(r[0]), 'avg_pue': r[1], 'best_pue': r[2]} for r in result]
     
     def query_anomaly_patterns(self) -> List[Dict]:
