@@ -8,7 +8,7 @@ Backward-compatible entry point for the modular APEX architecture.
 """
 
 import asyncio
-from apex_core.models import CoolingMode, CoolingZone, ThermalNode
+from apex_core.models import CoolingMode, CoolingZone, ThermalNode, RackCell
 from apex_core.pistons import (
     APEXPiston, CORETHINKPiston, MICROWAVEPiston,
     SUPERNOVAPiston, SHADOWPiston, GHOSTPiston
@@ -18,22 +18,24 @@ from apex_core.orchestrator import APEXThermalOrchestrator
 async def main():
     orchestrator = APEXThermalOrchestrator(mode=CoolingMode.COLOSSUS)
 
-    # Example: Register 3 cooling zones with 10 nodes each
+    # Example: Register 3 cooling zones with 10 nodes each across 1 cell per zone
     for zone_idx in range(3):
         zone = CoolingZone(
             zone_id=f'ZONE-{zone_idx:03d}',
             zone_name=f'Colossus Zone {zone_idx}'
         )
+        cell = RackCell(rack_id=f'RACK-{zone_idx:03d}', zone_id=zone.zone_id)
         for node_idx in range(10):
             node = ThermalNode(
                 node_id=f'NODE-{zone_idx:03d}-{node_idx:04d}',
-                rack_id=f'RACK-{zone_idx:03d}',
+                rack_id=cell.rack_id,
                 zone_id=zone.zone_id,
                 temp_celsius=65.0 + (node_idx * 0.5),
                 gpu_utilization=0.85,
                 power_watts=700.0
             )
-            zone.nodes.append(node)
+            cell.nodes.append(node)
+        zone.cells.append(cell)
         orchestrator.register_zone(zone)
 
     # Run 10 ticks for demo

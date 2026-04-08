@@ -3,7 +3,8 @@ import logging
 from typing import List, Optional
 from apex_core.models import CoolingMode, CoolingZone, ThermalNode
 from apex_core.pistons import (
-    CORETHINKPiston, MICROWAVEPiston, SUPERNOVAPiston, SHADOWPiston, GHOSTPiston
+    CORETHINKPiston, MICROWAVEPiston, SUPERNOVAPiston, SHADOWPiston, GHOSTPiston,
+    SONICPiston, BODYBUILDERPiston
 )
 
 class APEXThermalOrchestrator:
@@ -23,19 +24,21 @@ class APEXThermalOrchestrator:
         self.logger = logging.getLogger('APEX-ORCHESTRATOR')
 
         self.pistons = {
-            'CORE-THINK': CORETHINKPiston(),
-            'MICROWAVE': MICROWAVEPiston(),
-            'SUPERNOVA': SUPERNOVAPiston(),
-            'SHADOW':    SHADOWPiston(),
-            'GHOST':     GHOSTPiston(),
+            'CORE-THINK':  CORETHINKPiston(),
+            'MICROWAVE':   MICROWAVEPiston(),
+            'SUPERNOVA':   SUPERNOVAPiston(),
+            'SHADOW':      SHADOWPiston(),
+            'GHOST':       GHOSTPiston(),
+            'SONIC':       SONICPiston(),
+            'BODYBUILDER': BODYBUILDERPiston(),
         }
 
         self.logger.info(f'APEX Thermal Orchestrator v{self.VERSION} [{self.CODENAME}] INITIALIZED')
 
     def register_zone(self, zone: CoolingZone):
         self.zones.append(zone)
-        self.all_nodes.extend(zone.nodes)
-        self.logger.info(f'Zone registered: {zone.zone_id} ({len(zone.nodes)} nodes)')
+        self.all_nodes.extend(zone.all_nodes)
+        self.logger.info(f'Zone registered: {zone.zone_id} ({len(zone.all_nodes)} nodes)')
 
     async def tick_cycle(self):
         """One full orchestration tick — runs every 500ms in production."""
@@ -43,7 +46,12 @@ class APEXThermalOrchestrator:
 
         # 1. Predictive Reasoning
         core_think_ctx = {'zones': self.zones, 'trigger': f'tick_{self.tick}'}
-        await self.pistons['CORE-THINK'].activate(core_think_ctx)
+        core_think_res = await self.pistons['CORE-THINK'].activate(core_think_ctx)
+
+        # 1a. BODYBUILDER rebalancing if entropy is high
+        unstable_zones = [z for z, data in core_think_res.get('forecast', {}).items() if data.get('status') == 'unstable']
+        if unstable_zones:
+            await self.pistons['BODYBUILDER'].activate({'unstable_zones': unstable_zones})
 
         # 2. Silent Monitoring
         shadow_ctx = {'all_nodes': self.all_nodes, 'trigger': f'tick_{self.tick}'}
@@ -58,6 +66,9 @@ class APEXThermalOrchestrator:
         if critical_nodes:
             supernova_ctx = {'critical_nodes': critical_nodes, 'trigger': 'THERMAL_CRITICAL'}
             await self.pistons['SUPERNOVA'].activate(supernova_ctx)
+
+            # 4a. SONIC direct hardware reflex
+            await self.pistons['SONIC'].activate({'target_nodes': critical_nodes})
 
         # 5. Scheduled Sweeps
         if self.tick % 5 == 0:

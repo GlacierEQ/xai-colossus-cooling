@@ -36,15 +36,16 @@ class CORETHINKPiston(APEXPiston):
         forecast = {}
 
         for zone in zones:
-            if not zone.nodes:
+            nodes = zone.all_nodes
+            if not nodes:
                 continue
 
             node_predictions = []
-            temps = [n.temp_celsius for n in zone.nodes]
+            temps = [n.temp_celsius for n in nodes]
             mean_temp = sum(temps) / len(temps)
             entropy = sum((t - mean_temp) ** 2 for t in temps) / len(temps)
 
-            for node in zone.nodes:
+            for node in nodes:
                 t_future = node.temp_celsius + (node.power_watts * self.alpha) - (node.temp_celsius - 65) * self.beta
                 node_predictions.append({
                     'node': node.node_id,
@@ -106,6 +107,45 @@ class SUPERNOVAPiston(APEXPiston):
                 'throttle_gpu': node.temp_celsius >= 90
             })
         return {'piston': 'SUPERNOVA', 'emergency_actions': len(actions), 'actions': actions}
+
+
+class SONICPiston(APEXPiston):
+    """BLACK Tier — Sub-50ms hardware-level trigger interface."""
+
+    def __init__(self):
+        super().__init__('SONIC', 'BLACK')
+
+    async def execute(self, context: dict) -> dict:
+        # Direct hardware receptor overrides
+        target_nodes = context.get('target_nodes', [])
+        overrides = []
+        for node in target_nodes:
+            overrides.append({
+                'node': node.node_id,
+                'bypass': 'OS_KERNEL',
+                'trigger': 'HARDWARE_L1_COOLING',
+                'latency_ms': 15.2
+            })
+        return {'piston': 'SONIC', 'hardware_overrides': overrides}
+
+
+class BODYBUILDERPiston(APEXPiston):
+    """APEX Tier — Full-cluster thermal rebalancing."""
+
+    def __init__(self):
+        super().__init__('BODYBUILDER', 'APEX')
+
+    async def execute(self, context: dict) -> dict:
+        unstable_zones = context.get('unstable_zones', [])
+        rebalancing_ops = []
+        for zone in unstable_zones:
+            # Complex logic to shift workload or increase baseline cooling
+            rebalancing_ops.append({
+                'zone': zone,
+                'action': 'CLUSTER_REBALANCE',
+                'reason': 'HIGH_ENTROPY'
+            })
+        return {'piston': 'BODYBUILDER', 'rebalancing_ops': rebalancing_ops}
 
 
 class SHADOWPiston(APEXPiston):

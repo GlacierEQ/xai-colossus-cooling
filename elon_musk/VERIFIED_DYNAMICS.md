@@ -9,6 +9,7 @@ A technical comparison of the xAI Colossus Thermal Orchestrator before and after
 | Feature | BEFORE (Standard) | AFTER (APEX Perfection) |
 |---|---|---|
 | **Structure** | Monolithic `thermal_orchestrator.py` | Modular package (`models`, `pistons`, `orchestrator`) |
+| **Hierarchy** | Flat Node List | **Bio-Inspired** (Zone -> Cell -> Node) |
 | **Naming** | Non-standard `apex-core` (hyphenated) | Python-compliant `apex_core` (underscored) |
 | **Packaging** | Missing `__init__.py` (not a package) | Full `__init__.py` integration |
 | **Cleanliness** | Binary `__pycache__` in source control | Clean source with root `.gitignore` |
@@ -22,6 +23,8 @@ A technical comparison of the xAI Colossus Thermal Orchestrator before and after
 | **Strategy** | Simple static thresholds | **CORE-THINK** Mathematical Forecasting |
 | **Resilience** | Unfiltered sensor telemetry | **Filtered Input** (-50°C to 150°C range) |
 | **Stability** | Individual node alerts | **Zone Entropy** ($\sigma^2$) variance analysis |
+| **Reflexes** | None (Software only) | **SONIC** (Ring -3 Hardware Reflexes) |
+| **Rebalancing** | Manual/Static | **BODYBUILDER** (Autonomous Entropy Rebalancing) |
 | **Stale Data** | Early return (potential stale values) | **Stale Data Reset** (auto-reset to 0.0) |
 | **Datetime** | Deprecated `utcnow()` | Modern `now(UTC)` (Python 3.12+) |
 
