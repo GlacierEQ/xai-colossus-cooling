@@ -49,7 +49,7 @@ op = OperatorClient(
     operator_id='xai-colossus-cooling',
     auth_token=os.getenv('ASPEN_GROVE_TOKEN')
 )
-op.register_swarm(manifest='mastermind-fusion/agent_swarm_manifest.json')
+op.register_swarm(manifest='mastermind_fusion/agent_swarm_manifest.json')
 op.activate(mode='COLOSSUS')
 ```
 
