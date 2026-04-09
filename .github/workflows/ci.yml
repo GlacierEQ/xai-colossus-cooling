@@ -26,6 +26,7 @@ jobs:
 
       - name: Run APEX thermal core tests
         run: |
+          export PYTHONPATH=$PYTHONPATH:.
           pytest tests/ -v --tb=short
 
   simulation:
@@ -47,4 +48,5 @@ jobs:
 
       - name: Run simulation smoke (spike scenario, 3 zones, 10 nodes, 20 ticks)
         run: |
+          export PYTHONPATH=$PYTHONPATH:.
           python simulation/sim_harness.py --zones 3 --nodes-per-zone 10 --ticks 20 --scenario spike

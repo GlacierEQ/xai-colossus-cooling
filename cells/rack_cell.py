@@ -12,7 +12,7 @@ Each physical rack in the Colossus cluster is modeled as a biological cell:
 
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional
-from datetime import datetime
+from datetime import datetime, UTC
 
 
 @dataclass
@@ -21,7 +21,7 @@ class RackSensor:
     sensor_type: str  # 'inlet_temp', 'exhaust_temp', 'airflow_cfm', 'power_kw'
     value: float
     unit: str
-    timestamp: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
 
 @dataclass
@@ -57,7 +57,7 @@ class RackCell:
     # Metadata
     gpu_count: int = 8
     gpu_model: str = 'H100'
-    created_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    created_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     
     def __post_init__(self):
         self.delta_t = self.exhaust_temp_c - self.inlet_temp_c

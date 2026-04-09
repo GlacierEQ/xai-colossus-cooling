@@ -17,7 +17,7 @@ at a real BMC (e.g., Dell iDRAC, HPE iLO, Supermicro IPMI).
 import os
 import logging
 import random
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import List, Dict, Optional
 
 logger = logging.getLogger('SENSOR-REDFISH')
@@ -39,7 +39,7 @@ class RedfishSensorReading:
         self.power_watts   = power_watts
         self.fan_rpm       = fan_rpm
         self.source        = source
-        self.timestamp     = datetime.utcnow().isoformat()
+        self.timestamp     = datetime.now(UTC).isoformat()
 
     @property
     def max_gpu_temp(self) -> float:
