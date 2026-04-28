@@ -1,63 +1,46 @@
-# ❄️ Colossus-Inspired Cooling Intelligence — APEX Thermal Intelligence System
+# ❄️ Colossus-Inspired Cooling Intelligence
 
-> **Independent engineering prototype by Casey Barton / GlacierEQ**  
-> **Architecture:** APEX bio-inspired agent orchestration  
+> **Independent proof-of-work by Casey Barton / GlacierEQ**  
+> **Focus:** predictive thermal control for frontier-scale AI infrastructure  
 > **Target class:** Colossus-scale hyperscale GPU clusters  
-> **Status:** operational prototype and application artifact
+> **Why it matters:** cooling affects uptime, density, efficiency, and cost per unit of compute
 
----
+## Core thesis
 
-## Why this repo exists
+Cooling at frontier-training scale should behave like an intelligent distributed organism, not a static threshold script.
 
-This repository is an independent proof-of-work system built to demonstrate upper-level systems thinking for xAI-class infrastructure problems.
+This repository is designed to show how a hyperscale thermal-control problem can be decomposed into five layers:
 
-It is **not** presented as an official xAI system or affiliated deployment. It is a working architecture and design artifact that shows how I think about:
+1. runtime control loop
+2. predictive intelligence
+3. telemetry persistence
+4. analytics and retrieval
+5. memory and audit spine
 
-- hyperscale thermal control
-- predictive orchestration
-- memory-backed cooling intelligence
-- telemetry and analytics pipelines
-- security hardening
-- auditability and deployment discipline
+Aspen Grove belongs in the fifth layer. It improves memory, correlation, and auditability without replacing the runtime loop.
 
-The core thesis is simple:
+## Reviewer path
 
-> Cooling at frontier-training scale should behave like an intelligent distributed organism, not a static threshold script.
+Start here:
 
----
+1. `docs/application/REVIEWER_QUICKSTART.md`
+2. `docs/application/EXECUTIVE_SUMMARY.md`
+3. `docs/application/STATEMENT_OF_EXCEPTIONAL_WORK.md`
+4. `docs/application/ELON_BRIEF.md`
 
-## Executive fit for upper-level xAI roles
+## What this repo demonstrates
 
-This repo is designed to signal the capabilities required for senior or staff-level work:
+- predictive rather than reactive control thinking
+- runtime boundary discipline
+- telemetry and observability awareness
+- memory-backed auditability
+- upper-level systems decomposition
 
-- cross-layer systems architecture
-- control-loop thinking under real constraints
-- predictive rather than reactive operations
-- infrastructure + software + telemetry integration
-- memory and analytics as first-class runtime tools
-- strong separation between runtime control, audit spine, and deployment surfaces
+## What it does not claim
 
-The system is intended to show how I would approach hard xAI-style problems:
-
-1. define a strong operating model
-2. decompose it into specialized agents and connectors
-3. preserve safety-critical runtime paths
-4. attach memory and analytics without replacing the core loop
-5. keep the whole stack observable and evolvable
-
----
-
-## System overview
-
-This system applies bio-inspired, multi-tier agent orchestration to one of the hardest problems in hyperscale AI compute: intelligent, predictive thermal management at Colossus scale (100,000+ GPU nodes).
-
-Built on the GlacierEQ APEX architecture, this cooling intelligence layer treats the datacenter as a living organism:
-
-- every rack is a cell
-- every cooling zone is tissue
-- every thermal event is a signal
-- every piston is a specialized response mode
-- Aspen Grove acts as the memory and audit spine
+- official xAI affiliation
+- production deployment inside Colossus
+- verified benchmark proof beyond architecture targets
 
 ---
 
