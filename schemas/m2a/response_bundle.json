@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://xai-colossus.glaciereq.io/schemas/m2a/response_bundle.json",
+  "title": "M2A Response Bundle",
+  "description": "Aggregated, ranked response bundle returned by MCP-to-All middleware after selective broadcast. One bundle per request envelope.",
+  "type": "object",
+  "required": ["bundle_id", "request_envelope_id", "resolved_at", "responders_evaluated", "responders_selected", "responses"],
+  "additionalProperties": false,
+  "properties": {
+    "bundle_id":             { "type": "string", "format": "uuid" },
+    "request_envelope_id":   { "type": "string", "format": "uuid", "description": "Links back to the originating M2A Request Envelope." },
+    "resolved_at":           { "type": "string", "format": "date-time" },
+    "latency_ms":            { "type": "number", "description": "Wall-clock ms from broadcast to bundle emission." },
+    "responders_evaluated":  { "type": "integer", "description": "Total agents that received the broadcast." },
+    "responders_selected":   { "type": "integer", "description": "Agents whose responses were included in this bundle." },
+    "responders_suppressed": { "type": "integer", "description": "Agents silenced by relevance filter." },
+    "consensus_status": {
+      "type": "string",
+      "enum": ["CONSENSUS", "MAJORITY", "SPLIT", "SINGLE", "TIMEOUT"],
+      "description": "Agreement level across selected responders."
+    },
+    "responses": {
+      "type": "array",
+      "description": "Ranked list of individual agent responses.",
+      "items": {
+        "type": "object",
+        "required": ["node_id", "node_type", "rank", "confidence", "data"],
+        "properties": {
+          "node_id":    { "type": "string" },
+          "node_type":  { "type": "string" },
+          "pillar":     { "type": "string" },
+          "rank":       { "type": "integer", "minimum": 1, "description": "1 = highest confidence response." },
+          "confidence": { "type": "number",  "minimum": 0, "maximum": 1 },
+          "latency_ms": { "type": "number" },
+          "data":       { "type": "object",  "description": "Intent-specific response payload." }
+        }
+      }
+    },
+    "aspen_grove_event_id": {
+      "type": "string",
+      "description": "Aspen Grove v7 audit event ID for this bundle. Present when aspen_grove_audit=true on the request."
+    }
+  }
+}

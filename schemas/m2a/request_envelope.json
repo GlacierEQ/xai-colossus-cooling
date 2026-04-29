@@ -1,0 +1,103 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://xai-colossus.glaciereq.io/schemas/m2a/request_envelope.json",
+  "title": "M2A Request Envelope",
+  "description": "Typed model-to-agent broadcast request for the xAI Colossus cooling swarm. Carries intent, domain, pillar scope, and cooling-specific payload for selective MCP-to-All routing.",
+  "type": "object",
+  "required": ["envelope_id", "issued_at", "intent", "domain", "pillar", "payload"],
+  "additionalProperties": false,
+  "properties": {
+    "envelope_id":   { "type": "string", "format": "uuid",      "description": "Globally unique request ID (UUID v4)." },
+    "issued_at":     { "type": "string", "format": "date-time", "description": "ISO-8601 UTC timestamp of broadcast issuance." },
+    "issued_by":     { "type": "string", "description": "Node ID of the originating orchestrator or agent." },
+    "intent": {
+      "type": "string",
+      "enum": [
+        "request_forecast",
+        "request_zone_snapshot",
+        "request_piston_status",
+        "emergency_coordination",
+        "run_export_workflow",
+        "sensor_calibration",
+        "anomaly_investigation"
+      ],
+      "description": "Typed intent — drives relevance routing in the MCP-to-All middleware."
+    },
+    "domain": {
+      "type": "string",
+      "enum": ["thermal", "fluid", "power", "security", "audit", "orchestration"],
+      "description": "Primary domain for capability matching."
+    },
+    "pillar": {
+      "type": "string",
+      "enum": ["runtime", "analytics", "memory", "telemetry", "orchestrator", "all"],
+      "description": "Pillar scope — restricts broadcast to matching pillar nodes only."
+    },
+    "max_responders": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 50,
+      "default": 5,
+      "description": "Maximum number of agents allowed to respond. Irrelevant responders are suppressed."
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["P0", "P1", "P2", "P3"],
+      "default": "P2",
+      "description": "P0 = emergency blast (< 50ms SLA). P1 = predictive surge. P2 = steady-state. P3 = background."
+    },
+    "ttl_ms": {
+      "type": "integer",
+      "minimum": 50,
+      "maximum": 30000,
+      "default": 2000,
+      "description": "Time-to-live in milliseconds. Responses after TTL are discarded."
+    },
+    "payload": {
+      "type": "object",
+      "description": "Intent-specific payload. Structure varies by intent (see examples below).",
+      "properties": {
+        "zone_ids":        { "type": "array",   "items": { "type": "string" } },
+        "rack_ids":        { "type": "array",   "items": { "type": "string" } },
+        "forecast_steps":  { "type": "integer", "minimum": 1, "maximum": 10 },
+        "piston_mode":     { "type": "string",  "enum": ["SHADOW", "MICROWAVE", "SUPERNOVA", "GHOST"] },
+        "alert_threshold_c": { "type": "number" },
+        "telemetry_snapshot": { "type": "object" },
+        "anomaly_signature":  { "type": "string" }
+      }
+    },
+    "aspen_grove_audit": {
+      "type": "boolean",
+      "default": true,
+      "description": "When true, Aspen Grove v7 records this broadcast and all responses."
+    }
+  },
+  "examples": [
+    {
+      "envelope_id": "a1b2c3d4-0000-0000-0000-000000000001",
+      "issued_at": "2026-04-29T00:00:00Z",
+      "issued_by": "apex-orchestrator-ring-0",
+      "intent": "request_forecast",
+      "domain": "thermal",
+      "pillar": "analytics",
+      "max_responders": 5,
+      "priority": "P1",
+      "ttl_ms": 500,
+      "payload": { "forecast_steps": 3, "zone_ids": ["HOT", "WARM"] },
+      "aspen_grove_audit": true
+    },
+    {
+      "envelope_id": "a1b2c3d4-0000-0000-0000-000000000002",
+      "issued_at": "2026-04-29T00:00:01Z",
+      "issued_by": "supernova-agent",
+      "intent": "emergency_coordination",
+      "domain": "thermal",
+      "pillar": "runtime",
+      "max_responders": 20,
+      "priority": "P0",
+      "ttl_ms": 50,
+      "payload": { "piston_mode": "SUPERNOVA", "alert_threshold_c": 83.0 },
+      "aspen_grove_audit": true
+    }
+  ]
+}
