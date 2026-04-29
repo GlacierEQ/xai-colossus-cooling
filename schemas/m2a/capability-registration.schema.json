@@ -5,22 +5,10 @@
   "description": "Registration contract for nodes participating in M2A and MCP-to-All routing.",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "node_id",
-    "node_type",
-    "capabilities",
-    "domains",
-    "accepts_broadcast"
-  ],
+  "required": ["node_id", "node_type", "capabilities", "domains", "accepts_broadcast"],
   "properties": {
-    "node_id": {
-      "type": "string",
-      "minLength": 1
-    },
-    "node_type": {
-      "type": "string",
-      "minLength": 1
-    },
+    "node_id": { "type": "string", "minLength": 1 },
+    "node_type": { "type": "string", "minLength": 1 },
     "capabilities": {
       "type": "array",
       "items": { "type": "string" },
@@ -33,28 +21,14 @@
       "minItems": 1,
       "uniqueItems": true
     },
-    "priority": {
-      "type": "integer",
-      "minimum": 0,
-      "maximum": 10
-    },
-    "cost_class": {
-      "type": "string",
-      "enum": ["low", "medium", "high"]
-    },
-    "latency_class": {
-      "type": "string",
-      "enum": ["fast", "normal", "slow"]
-    },
-    "accepts_broadcast": {
-      "type": "boolean"
-    },
-    "response_mode": {
-      "type": "string",
-      "enum": ["direct", "selective", "bundle_only"]
-    },
-    "pillar": {
-      "type": "string"
-    }
+    "priority": { "type": "integer", "minimum": 0, "maximum": 10 },
+    "cost_class": { "type": "string", "enum": ["low", "medium", "high"] },
+    "latency_class": { "type": "string", "enum": ["fast", "normal", "slow"] },
+    "accepts_broadcast": { "type": "boolean" },
+    "response_mode": { "type": "string", "enum": ["direct", "selective", "bundle_only"] },
+    "pillar": { "type": "string" },
+    "effectiveness_score": { "type": "number", "minimum": 0, "maximum": 1 },
+    "current_load": { "type": "number", "minimum": 0, "maximum": 1 },
+    "status": { "type": "string", "enum": ["healthy", "degraded", "offline"] }
   }
 }
