@@ -13,6 +13,9 @@ export default function Dashboard() {
   const { data: thermal,   error: tErr } = useSWR('/api/thermal',   fetcher, { refreshInterval: 3000 })
   const { data: decisions, error: dErr } = useSWR('/api/decisions',  fetcher, { refreshInterval: 5000 })
   const { data: health,   error: hErr }  = useSWR('/api/health',     fetcher, { refreshInterval: 10000 })
+  const { data: forecastBundle, error: fErr } = useSWR('/api/m2a/forecast?zone_id=ZONE-001', fetcher, { refreshInterval: 8000 })
+
+  const topForecast = forecastBundle?.bundle?.selected_responders?.[0]
 
   return (
     <main className="min-h-screen p-6 space-y-6">
@@ -29,6 +32,24 @@ export default function Dashboard() {
       <section>
         <h2 className="text-xs uppercase tracking-widest text-slate-400 mb-3">Thermal Zones</h2>
         <ThermalGrid zones={thermal?.zones} loading={!thermal && !tErr} />
+      </section>
+
+      {/* Forecast bundle preview */}
+      <section className="rounded-xl border border-apex-border p-4 bg-black/20">
+        <h2 className="text-xs uppercase tracking-widest text-slate-400 mb-3">M2A Forecast Bundle</h2>
+        {fErr ? (
+          <p className="text-sm text-red-400">Failed to load M2A forecast bundle.</p>
+        ) : topForecast ? (
+          <div className="space-y-2 text-sm text-slate-300">
+            <p><span className="text-slate-500">Responder:</span> {topForecast.node_id}</p>
+            <p><span className="text-slate-500">Action:</span> {topForecast.proposed_action}</p>
+            <p><span className="text-slate-500">Relevance:</span> {topForecast.relevance}</p>
+            <p><span className="text-slate-500">Confidence:</span> {topForecast.confidence}</p>
+            <p><span className="text-slate-500">Audit Event:</span> {forecastBundle?.bundle?.audit_event_id || 'pending'}</p>
+          </div>
+        ) : (
+          <p className="text-sm text-slate-500">No forecast responders selected yet.</p>
+        )}
       </section>
 
       {/* Pistons + MORPHEUS split */}
