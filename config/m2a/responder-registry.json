@@ -1,0 +1,88 @@
+[
+  {
+    "node_id": "apex_orchestrator_runtime",
+    "node_type": "runtime_orchestrator",
+    "capabilities": [
+      "request_zone_snapshot",
+      "request_piston_status",
+      "activate_piston",
+      "run_predictive_sweep",
+      "emit_emergency_state"
+    ],
+    "domains": ["runtime", "cooling", "orchestration"],
+    "priority": 10,
+    "cost_class": "medium",
+    "latency_class": "fast",
+    "accepts_broadcast": true,
+    "response_mode": "selective",
+    "pillar": "runtime_orchestration_pillar"
+  },
+  {
+    "node_id": "supabase_telemetry_connector",
+    "node_type": "telemetry_connector",
+    "capabilities": [
+      "request_zone_snapshot",
+      "emit_telemetry_log",
+      "emit_anomaly_log",
+      "emit_emergency_log"
+    ],
+    "domains": ["telemetry", "runtime", "cooling"],
+    "priority": 8,
+    "cost_class": "low",
+    "latency_class": "normal",
+    "accepts_broadcast": true,
+    "response_mode": "selective",
+    "pillar": "memory_audit_pillar"
+  },
+  {
+    "node_id": "motherduck_analytics_connector",
+    "node_type": "analytics_connector",
+    "capabilities": [
+      "request_forecast",
+      "query_hot_zones",
+      "query_pue_trend",
+      "query_anomaly_patterns"
+    ],
+    "domains": ["analytics", "forecast", "cooling"],
+    "priority": 8,
+    "cost_class": "medium",
+    "latency_class": "normal",
+    "accepts_broadcast": true,
+    "response_mode": "selective",
+    "pillar": "analytics_forecast_pillar"
+  },
+  {
+    "node_id": "aspen_grove_memory_spine",
+    "node_type": "memory_audit_system",
+    "capabilities": [
+      "record_broadcast_event",
+      "record_bundle_result",
+      "request_decision_log",
+      "request_audit_trace"
+    ],
+    "domains": ["memory", "audit", "cooling", "engineering"],
+    "priority": 9,
+    "cost_class": "low",
+    "latency_class": "normal",
+    "accepts_broadcast": true,
+    "response_mode": "bundle_only",
+    "pillar": "memory_audit_pillar"
+  },
+  {
+    "node_id": "dashboard_control_surface",
+    "node_type": "frontend_control_surface",
+    "capabilities": [
+      "request_zone_snapshot",
+      "request_piston_status",
+      "request_decision_log",
+      "request_forecast"
+    ],
+    "domains": ["frontend", "operator", "cooling"],
+    "priority": 6,
+    "cost_class": "low",
+    "latency_class": "fast",
+    "accepts_broadcast": false,
+    "response_mode": "direct",
+    "pillar": "frontend_control_pillar"
+  }
+]
