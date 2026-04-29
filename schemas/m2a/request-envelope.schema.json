@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glaciereq.local/schemas/m2a/request-envelope.schema.json",
+  "title": "M2A Request Envelope",
+  "description": "Typed request contract for M2A and MCP-to-All routing.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "message_id",
+    "protocol",
+    "intent",
+    "source",
+    "target_scope"
+  ],
+  "properties": {
+    "message_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "protocol": {
+      "type": "string",
+      "enum": ["m2a", "mcp_to_all"]
+    },
+    "intent": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1
+    },
+    "target_scope": {
+      "type": "string",
+      "enum": ["single", "pillar", "broadcast"]
+    },
+    "target": {
+      "type": "string"
+    },
+    "domains": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "required_capabilities": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "routing": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["direct", "relevance_filtered_broadcast", "pillar_broadcast"]
+        },
+        "max_responders": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "suppress_irrelevant": {
+          "type": "boolean"
+        },
+        "bundle_strategy": {
+          "type": "string",
+          "enum": ["first", "rank_and_merge", "rank_only"]
+        }
+      }
+    },
+    "auth": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["none", "api_key", "token", "internal"]
+        }
+      }
+    },
+    "trace": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "session_id": { "type": "string" },
+        "audit": { "type": "boolean" },
+        "priority": {
+          "type": "string",
+          "enum": ["low", "normal", "high", "critical"]
+        }
+      }
+    }
+  }
+}
