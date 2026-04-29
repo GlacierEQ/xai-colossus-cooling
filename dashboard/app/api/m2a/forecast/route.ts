@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 
 import { createRoutingAuditTrail } from '../../../../lib/m2a/aspen-audit'
+import { persistAspenAuditEvents } from '../../../../lib/m2a/aspen-persistence'
 import { buildResponseBundle } from '../../../../lib/m2a/relevance-router'
 import { requestForecastEnvelope } from '../../../../lib/m2a/request-builders'
 
@@ -26,6 +27,11 @@ export async function GET(request: Request) {
       bundle.selected_responders.length,
       bundle.suppressed_responders,
     )
+    const persistence = await persistAspenAuditEvents([
+      audit.issued,
+      audit.selected,
+      audit.bundled,
+    ])
 
     return NextResponse.json({
       envelope,
@@ -34,6 +40,7 @@ export async function GET(request: Request) {
         audit_event_id: audit.bundled.event_id,
       },
       audit,
+      persistence,
     })
   } catch (error) {
     return NextResponse.json(
