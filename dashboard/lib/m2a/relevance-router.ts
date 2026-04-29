@@ -35,12 +35,16 @@ export interface CapabilityRegistration {
   accepts_broadcast: boolean
   response_mode?: 'direct' | 'selective' | 'bundle_only'
   pillar?: string
+  effectiveness_score?: number
+  current_load?: number
+  status?: 'healthy' | 'degraded' | 'offline'
 }
 
 export interface RankedResponder extends CapabilityRegistration {
   relevance: number
   confidence: number
   proposed_action: string
+  timeout_ms: number
 }
 
 export interface ResponseBundle {
@@ -53,6 +57,32 @@ export interface ResponseBundle {
   errors?: string[]
 }
 
+const ROUTER_POLICY = {
+  weights: {
+    capability_match: 0.5,
+    domain_match: 0.2,
+    priority: 0.1,
+    latency: 0.06,
+    effectiveness: 0.12,
+    load_penalty: 0.08,
+    cost_penalty: 0.06,
+  },
+  timeouts_ms: {
+    fast: 250,
+    normal: 800,
+    slow: 1800,
+  },
+  degraded: {
+    max_current_load: 0.92,
+    min_effectiveness_score: 0.3,
+    suppress_degraded_responders: true,
+  },
+  defaults: {
+    max_responders: 5,
+    bundle_strategy: 'rank_and_merge' as BundleStrategy,
+  },
+}
+
 function overlapScore(a?: string[], b?: string[]): number {
   if (!a?.length || !b?.length) return 0
   const right = new Set(b)
@@ -61,20 +91,44 @@ function overlapScore(a?: string[], b?: string[]): number {
 }
 
 function latencyBoost(latency?: CapabilityRegistration['latency_class']): number {
-  if (latency === 'fast') return 0.08
-  if (latency === 'normal') return 0.03
+  if (latency === 'fast') return 1
+  if (latency === 'normal') return 0.5
   return 0
 }
 
 function costPenalty(cost?: CapabilityRegistration['cost_class']): number {
-  if (cost === 'high') return 0.08
-  if (cost === 'medium') return 0.03
+  if (cost === 'high') return 1
+  if (cost === 'medium') return 0.5
   return 0
 }
 
 function priorityBoost(priority?: number): number {
   if (priority == null) return 0
-  return Math.min(Math.max(priority, 0), 10) / 100
+  return Math.min(Math.max(priority, 0), 10) / 10
+}
+
+function effectivenessBoost(effectiveness?: number): number {
+  if (effectiveness == null) return 0.5
+  return Math.max(0, Math.min(1, effectiveness))
+}
+
+function loadPenalty(load?: number): number {
+  if (load == null) return 0
+  return Math.max(0, Math.min(1, load))
+}
+
+function timeoutFor(latency?: CapabilityRegistration['latency_class']): number {
+  if (latency === 'fast') return ROUTER_POLICY.timeouts_ms.fast
+  if (latency === 'normal') return ROUTER_POLICY.timeouts_ms.normal
+  return ROUTER_POLICY.timeouts_ms.slow
+}
+
+function shouldSuppressDegraded(responder: CapabilityRegistration): boolean {
+  if (!ROUTER_POLICY.degraded.suppress_degraded_responders) return false
+  if (responder.status === 'offline') return true
+  if ((responder.current_load ?? 0) > ROUTER_POLICY.degraded.max_current_load) return true
+  if ((responder.effectiveness_score ?? 1) < ROUTER_POLICY.degraded.min_effectiveness_score) return true
+  return responder.status === 'degraded'
 }
 
 export function scoreResponder(
@@ -93,9 +147,21 @@ export function scoreResponder(
     return null
   }
 
+  if (shouldSuppressDegraded(responder)) {
+    return null
+  }
+
   const capabilityScore = overlapScore(envelope.required_capabilities, responder.capabilities)
   const domainScore = overlapScore(envelope.domains, responder.domains)
-  const base = capabilityScore * 0.55 + domainScore * 0.25 + priorityBoost(responder.priority) + latencyBoost(responder.latency_class) - costPenalty(responder.cost_class)
+  const base =
+    capabilityScore * ROUTER_POLICY.weights.capability_match +
+    domainScore * ROUTER_POLICY.weights.domain_match +
+    priorityBoost(responder.priority) * ROUTER_POLICY.weights.priority +
+    latencyBoost(responder.latency_class) * ROUTER_POLICY.weights.latency +
+    effectivenessBoost(responder.effectiveness_score) * ROUTER_POLICY.weights.effectiveness -
+    loadPenalty(responder.current_load) * ROUTER_POLICY.weights.load_penalty -
+    costPenalty(responder.cost_class) * ROUTER_POLICY.weights.cost_penalty
+
   const relevance = Math.max(0, Math.min(1, base))
 
   if (relevance <= 0 && envelope.routing?.suppress_irrelevant !== false) {
@@ -107,6 +173,7 @@ export function scoreResponder(
     relevance,
     confidence: Math.max(0.1, Math.min(0.99, relevance + 0.04)),
     proposed_action: envelope.intent,
+    timeout_ms: timeoutFor(responder.latency_class),
   }
 }
 
@@ -119,7 +186,7 @@ export function buildResponseBundle(
     .filter((item): item is RankedResponder => item !== null)
     .sort((a, b) => b.relevance - a.relevance)
 
-  const maxResponders = envelope.routing?.max_responders ?? 5
+  const maxResponders = envelope.routing?.max_responders ?? ROUTER_POLICY.defaults.max_responders
   const selected = ranked.slice(0, maxResponders)
   const suppressed = Math.max(0, responders.length - selected.length)
 
@@ -128,7 +195,7 @@ export function buildResponseBundle(
     bundle_status: selected.length > 0 ? 'complete' : 'failed',
     selected_responders: selected,
     suppressed_responders: suppressed,
-    bundle_strategy: envelope.routing?.bundle_strategy ?? 'rank_and_merge',
+    bundle_strategy: envelope.routing?.bundle_strategy ?? ROUTER_POLICY.defaults.bundle_strategy,
     errors: selected.length > 0 ? [] : ['No relevant responders selected'],
   }
 }
