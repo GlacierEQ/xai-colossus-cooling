@@ -11,6 +11,18 @@ M2A sits between:
 - memory and audit systems such as Aspen Grove
 - execution agents such as Codex-style builders
 
+## MCP-to-All framing
+
+M2A should ride on a **MCP-to-All** broadcast fabric.
+
+That means:
+- one typed intent can reach multiple MCP servers, agents, tools, or programs
+- only relevant responders should answer
+- irrelevant responders should stay quiet
+- the middleware should rank and bundle the useful responses
+
+This makes M2A more scalable than strict one-to-one sequential routing.
+
 ## Why M2A matters
 
 The repo already has:
@@ -48,6 +60,7 @@ It should:
 - apply retry and idempotency rules
 - emit Aspen audit events
 - normalize responses back to the caller
+- support relevance-filtered broadcast to multiple responders
 
 ### Backend
 The orchestrator should receive typed M2A commands rather than unstructured endpoint assumptions.
@@ -68,6 +81,8 @@ Examples:
 - forecast returned
 - agent recommendation emitted
 - operator override applied
+- broadcast evaluated
+- responders selected
 
 ## M2A message shape
 
@@ -92,18 +107,24 @@ Examples:
 }
 ```
 
-## Response shape
+## Broadcast bundle shape
 
 ```json
 {
   "message_id": "m2a_2026_04_28_0001",
   "status": "ok",
-  "source": "apex_orchestrator",
-  "result": {
-    "predicted_temp_c": 78.4,
-    "recommended_piston": "MICROWAVE",
-    "confidence": 0.84
-  },
+  "bundle_mode": "mcp_to_all",
+  "selected_responders": [
+    {
+      "node_id": "forecast_agent_01",
+      "relevance": 0.95,
+      "confidence": 0.84,
+      "result": {
+        "predicted_temp_c": 78.4,
+        "recommended_piston": "MICROWAVE"
+      }
+    }
+  ],
   "audit_event_id": "evt_code_2026_04_28_0142"
 }
 ```
@@ -118,14 +139,16 @@ To make M2A elite in this repo, it should provide:
 - audit/event emission
 - role distinction between human, model, and execution agent
 - compatibility with dashboard, orchestrator, connectors, and Aspen Grove
+- broadcast support with relevance filtering
 
 ## Best next implementation moves
 
 1. create `schemas/m2a/` for request and response contracts
 2. create a middleware router that validates M2A messages
-3. update dashboard calls to emit M2A-style payloads
-4. update orchestrator and connectors to consume typed M2A intents
-5. emit Aspen Grove audit events for every meaningful M2A exchange
+3. add MCP-to-All relevance filtering and response bundling
+4. update dashboard calls to emit M2A-style payloads
+5. update orchestrator and connectors to consume typed M2A intents
+6. emit Aspen Grove audit events for every meaningful M2A exchange
 
 ## Bottom line
 
