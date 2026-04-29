@@ -1,24 +1,40 @@
 import type { AspenAuditEvent } from './aspen-audit'
 
 export interface AspenPersistenceResult {
-  mode: 'webhook' | 'offline'
+  mode: 'connector' | 'webhook' | 'offline'
   persisted: boolean
   event_count: number
   target?: string
 }
 
-export async function persistAspenAuditEvents(
-  events: AspenAuditEvent[],
-): Promise<AspenPersistenceResult> {
-  const webhookUrl = process.env.ASPEN_AUDIT_WEBHOOK_URL || ''
+async function persistViaConnector(events: AspenAuditEvent[]): Promise<AspenPersistenceResult> {
+  const connectorUrl = process.env.ASPEN_CONNECTOR_URL || ''
+  const connectorToken = process.env.ASPEN_CONNECTOR_TOKEN || ''
 
-  if (!webhookUrl) {
-    return {
-      mode: 'offline',
-      persisted: false,
-      event_count: events.length,
-    }
+  const response = await fetch(connectorUrl, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      ...(connectorToken ? { authorization: `Bearer ${connectorToken}` } : {}),
+    },
+    body: JSON.stringify({ events, source: 'm2a_route_runtime' }),
+    cache: 'no-store',
+  })
+
+  if (!response.ok) {
+    throw new Error(`Aspen connector persistence failed: ${response.status}`)
   }
+
+  return {
+    mode: 'connector',
+    persisted: true,
+    event_count: events.length,
+    target: connectorUrl,
+  }
+}
+
+async function persistViaWebhook(events: AspenAuditEvent[]): Promise<AspenPersistenceResult> {
+  const webhookUrl = process.env.ASPEN_AUDIT_WEBHOOK_URL || ''
 
   const response = await fetch(webhookUrl, {
     method: 'POST',
@@ -38,5 +54,26 @@ export async function persistAspenAuditEvents(
     persisted: true,
     event_count: events.length,
     target: webhookUrl,
+  }
+}
+
+export async function persistAspenAuditEvents(
+  events: AspenAuditEvent[],
+): Promise<AspenPersistenceResult> {
+  const connectorUrl = process.env.ASPEN_CONNECTOR_URL || ''
+  const webhookUrl = process.env.ASPEN_AUDIT_WEBHOOK_URL || ''
+
+  if (connectorUrl) {
+    return persistViaConnector(events)
+  }
+
+  if (webhookUrl) {
+    return persistViaWebhook(events)
+  }
+
+  return {
+    mode: 'offline',
+    persisted: false,
+    event_count: events.length,
   }
 }
