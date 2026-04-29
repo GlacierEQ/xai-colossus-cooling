@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "vitest",
+    "test:run": "vitest run"
   },
   "dependencies": {
     "next": "14.2.0",
@@ -23,6 +25,7 @@
     "@types/node": "^20",
     "tailwindcss": "^3.4",
     "autoprefixer": "^10",
-    "postcss": "^8"
+    "postcss": "^8",
+    "vitest": "^2.1.3"
   }
 }
