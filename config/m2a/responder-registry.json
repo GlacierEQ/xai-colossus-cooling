@@ -15,7 +15,9 @@
     "latency_class": "fast",
     "accepts_broadcast": true,
     "response_mode": "selective",
-    "pillar": "runtime_orchestration_pillar"
+    "pillar": "runtime_orchestration_pillar",
+    "effectiveness_score": 0.95,
+    "current_load": 0.42
   },
   {
     "node_id": "supabase_telemetry_connector",
@@ -32,7 +34,9 @@
     "latency_class": "normal",
     "accepts_broadcast": true,
     "response_mode": "selective",
-    "pillar": "memory_audit_pillar"
+    "pillar": "memory_audit_pillar",
+    "effectiveness_score": 0.82,
+    "current_load": 0.35
   },
   {
     "node_id": "motherduck_analytics_connector",
@@ -49,7 +53,9 @@
     "latency_class": "normal",
     "accepts_broadcast": true,
     "response_mode": "selective",
-    "pillar": "analytics_forecast_pillar"
+    "pillar": "analytics_forecast_pillar",
+    "effectiveness_score": 0.88,
+    "current_load": 0.48
   },
   {
     "node_id": "aspen_grove_memory_spine",
@@ -66,7 +72,9 @@
     "latency_class": "normal",
     "accepts_broadcast": true,
     "response_mode": "bundle_only",
-    "pillar": "memory_audit_pillar"
+    "pillar": "memory_audit_pillar",
+    "effectiveness_score": 0.91,
+    "current_load": 0.22
   },
   {
     "node_id": "dashboard_control_surface",
@@ -83,6 +91,8 @@
     "latency_class": "fast",
     "accepts_broadcast": false,
     "response_mode": "direct",
-    "pillar": "frontend_control_pillar"
+    "pillar": "frontend_control_pillar",
+    "effectiveness_score": 0.75,
+    "current_load": 0.18
   }
 ]
