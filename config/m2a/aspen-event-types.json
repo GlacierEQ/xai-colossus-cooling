@@ -1,0 +1,20 @@
+{
+  "event_types": [
+    "m2a_broadcast_issued",
+    "m2a_responders_evaluated",
+    "m2a_responders_selected",
+    "m2a_bundle_emitted",
+    "m2a_bundle_failed",
+    "m2a_operator_override",
+    "m2a_forecast_requested",
+    "m2a_forecast_returned"
+  ],
+  "required_fields": [
+    "event_id",
+    "event_type",
+    "ts",
+    "message_id",
+    "source",
+    "summary"
+  ]
+}
