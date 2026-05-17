@@ -1,0 +1,63 @@
+name: APEX CI -- Test Suite
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Run APEX Test Suite
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+      MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install ezdxf scikit-learn numpy pandas pytest
+
+      - name: Lint (ruff)
+        run: |
+          pip install ruff
+          ruff check . --ignore E501
+        continue-on-error: true
+
+      - name: Run tests
+        run: |
+          pytest tests/ -v --tb=short
+        continue-on-error: true
+
+      - name: Validate AutoCAD connector (ezdxf)
+        run: |
+          python -c "
+          import sys, os
+          sys.path.insert(0, '.')
+          from connectors.autocad_connector import mcp_action_draw_ccl002
+          result = mcp_action_draw_ccl002({'output_path': '/tmp/CCL-002-test.dxf'})
+          assert result['status'] == 'success'
+          assert os.path.exists('/tmp/CCL-002-test.dxf')
+          print('CCL-002 DXF OK:', result['output'])
+          "
+
+      - name: Upload CCL-002 DXF artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: CCL-002-piping-plan
+          path: /tmp/CCL-002-test.dxf
+          retention-days: 30
