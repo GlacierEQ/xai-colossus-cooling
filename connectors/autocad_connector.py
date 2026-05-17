@@ -4,10 +4,10 @@ connectors/autocad_connector.py
 GlacierEQ Sovereign Stack | APEX Ring 0
 Author: Casey Barton
 Purpose: Programmatic AutoCAD control via COM (Windows) + ezdxf (cross-platform)
-         Generates CCL-002 Underfloor Piping Plan DXF from cooling system parameters.
+         Generates CCL-002 Underfloor Piping Plan — DXF, PDF, SVG, PNG outputs.
 
 MCP Integration: Expose draw_ccl002() as a Notion-triggered MCP action.
-Dependency: pip install ezdxf
+Dependency: pip install ezdxf matplotlib
 Optional COM path: pip install pywin32 pyautocad  (Windows + licensed AutoCAD only)
 """
 
@@ -15,6 +15,7 @@ from __future__ import annotations
 import logging
 import os
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Optional
 
 import ezdxf
@@ -66,7 +67,7 @@ class AutoCADConnector:
     """
     Dual-path AutoCAD connector.
     Path A: COM automation via pyautocad (Windows + licensed AutoCAD)
-    Path B: ezdxf cross-platform DXF generation (no license needed)
+    Path B: ezdxf cross-platform DXF + PDF/SVG/PNG export (no license, any OS)
     """
 
     def __init__(self, prefer_com: bool = False):
@@ -155,14 +156,93 @@ class AutoCADConnector:
                 msp.add_text(run.label, height=2.0,
                     dxfattribs={"layer": "CCL-ANNOTATIONS", "insert": (mid_x, mid_y)})
 
+    def export_pdf(self, doc, output_path: str) -> str:
+        """Export DXF doc to print-ready A3 PDF via matplotlib backend."""
+        try:
+            import matplotlib
+            matplotlib.use('Agg')
+            import matplotlib.pyplot as plt
+            from matplotlib.backends.backend_pdf import PdfPages
+            from ezdxf.addons.drawing import RenderContext, Frontend
+            from ezdxf.addons.drawing.matplotlib import MatplotlibBackend
+            with PdfPages(output_path) as pdf:
+                fig = plt.figure(figsize=(16.54, 11.69), facecolor='white')  # A3 landscape
+                ax = fig.add_axes([0.02, 0.02, 0.96, 0.96])
+                ax.set_facecolor('white')
+                ctx = RenderContext(doc)
+                out = MatplotlibBackend(ax)
+                Frontend(ctx, out).draw_layout(doc.modelspace(), finalize=True)
+                ax.set_title(
+                    f"CCL-002 Underfloor Piping Plan | GlacierEQ APEX | Casey Barton",
+                    fontsize=8, color='#333333', pad=4
+                )
+                pdf.savefig(fig, dpi=300, bbox_inches='tight')
+                plt.close(fig)
+            logger.info(f"PDF blueprint exported: {output_path}")
+            return output_path
+        except ImportError as e:
+            logger.warning(f"PDF export skipped (pip install matplotlib): {e}")
+            return ""
+
+    def export_svg(self, doc, output_path: str) -> str:
+        """Export DXF doc to SVG via matplotlib backend."""
+        try:
+            import matplotlib
+            matplotlib.use('Agg')
+            import matplotlib.pyplot as plt
+            from ezdxf.addons.drawing import RenderContext, Frontend
+            from ezdxf.addons.drawing.matplotlib import MatplotlibBackend
+            fig = plt.figure(figsize=(16.54, 11.69), facecolor='white')
+            ax = fig.add_axes([0.02, 0.02, 0.96, 0.96])
+            ax.set_facecolor('white')
+            ctx = RenderContext(doc)
+            out = MatplotlibBackend(ax)
+            Frontend(ctx, out).draw_layout(doc.modelspace(), finalize=True)
+            fig.savefig(output_path, format='svg', dpi=150, bbox_inches='tight')
+            plt.close(fig)
+            logger.info(f"SVG blueprint exported: {output_path}")
+            return output_path
+        except ImportError as e:
+            logger.warning(f"SVG export skipped (pip install matplotlib): {e}")
+            return ""
+
+    def export_png(self, doc, output_path: str, dpi: int = 300) -> str:
+        """Export DXF doc to high-res PNG."""
+        try:
+            import matplotlib
+            matplotlib.use('Agg')
+            import matplotlib.pyplot as plt
+            from ezdxf.addons.drawing import RenderContext, Frontend
+            from ezdxf.addons.drawing.matplotlib import MatplotlibBackend
+            fig = plt.figure(figsize=(16.54, 11.69), facecolor='white')
+            ax = fig.add_axes([0.02, 0.02, 0.96, 0.96])
+            ax.set_facecolor('white')
+            ctx = RenderContext(doc)
+            out = MatplotlibBackend(ax)
+            Frontend(ctx, out).draw_layout(doc.modelspace(), finalize=True)
+            fig.savefig(output_path, format='png', dpi=dpi, bbox_inches='tight')
+            plt.close(fig)
+            logger.info(f"PNG blueprint exported: {output_path} @ {dpi}dpi")
+            return output_path
+        except ImportError as e:
+            logger.warning(f"PNG export skipped (pip install matplotlib): {e}")
+            return ""
+
     def draw_ccl002(
         self,
         output_path: str = "CCL-002_Underfloor_Piping_Plan.dxf",
-        cfg: Optional[CCL002Config] = None
-    ) -> str:
-        """Generate CCL-002 Underfloor Piping Plan. MCP-callable."""
+        cfg: Optional[CCL002Config] = None,
+        export_formats: list = None,
+    ) -> dict:
+        """Generate CCL-002 Underfloor Piping Plan. MCP-callable.
+        Returns dict with paths for all requested formats.
+        export_formats: list of 'dxf','pdf','svg','png' — default ['dxf','pdf','png']
+        """
         if cfg is None:
             cfg = CCL002Config()
+        if export_formats is None:
+            export_formats = ['dxf', 'pdf', 'png']
+
         doc = ezdxf.new(dxfversion="R2018")
         doc.header["$INSUNITS"] = 4
         msp = doc.modelspace()
@@ -172,13 +252,33 @@ class AutoCADConnector:
         self.draw_pipe_runs(msp, cfg)
         msp.add_text("SHADOW_OK:RING-3:APEX", height=1.0,
             dxfattribs={"layer": "_SHADOW_VALIDATION", "insert": (0, -5)})
-        doc.saveas(output_path)
-        logger.info(f"CCL-002 saved: {output_path}")
-        return output_path
+
+        base = str(Path(output_path).with_suffix(''))
+        outputs = {}
+
+        if 'dxf' in export_formats:
+            dxf_path = base + '.dxf'
+            doc.saveas(dxf_path)
+            outputs['dxf'] = dxf_path
+            logger.info(f"DXF saved: {dxf_path}")
+
+        if 'pdf' in export_formats:
+            outputs['pdf'] = self.export_pdf(doc, base + '.pdf')
+
+        if 'svg' in export_formats:
+            outputs['svg'] = self.export_svg(doc, base + '.svg')
+
+        if 'png' in export_formats:
+            outputs['png'] = self.export_png(doc, base + '.png')
+
+        return outputs
 
 
 def mcp_action_draw_ccl002(params: dict) -> dict:
-    """APEX MCP callable. params: {output_path, supply_temp_c, return_temp_c, zone_rows, zone_cols, prefer_com}"""
+    """APEX MCP / CLI callable.
+    params: {output_path, supply_temp_c, return_temp_c, zone_rows, zone_cols,
+             prefer_com, export_formats}
+    """
     cfg = CCL002Config(
         supply_temp_c=params.get("supply_temp_c", 16.0),
         return_temp_c=params.get("return_temp_c", 26.0),
@@ -186,14 +286,19 @@ def mcp_action_draw_ccl002(params: dict) -> dict:
         zone_cols=params.get("zone_cols", 8),
     )
     connector = AutoCADConnector(prefer_com=params.get("prefer_com", False))
-    path = connector.draw_ccl002(
+    outputs = connector.draw_ccl002(
         output_path=params.get("output_path", "CCL-002_Underfloor_Piping_Plan.dxf"),
-        cfg=cfg
+        cfg=cfg,
+        export_formats=params.get("export_formats", ["dxf", "pdf", "png"]),
     )
-    return {"status": "success", "output": path, "ring": -3}
+    return {"status": "success", "outputs": outputs, "ring": 0}
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     result = mcp_action_draw_ccl002({})
-    print(f"Generated: {result['output']}")
+    print("\n=== APEX BLUEPRINT GENERATOR ===")
+    for fmt, path in result['outputs'].items():
+        if path:
+            print(f"  [{fmt.upper()}] {path}")
+    print("================================")

@@ -29,7 +29,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install ezdxf scikit-learn numpy pandas pytest
+          pip install ezdxf matplotlib scikit-learn numpy pandas pytest
 
       - name: Lint (ruff)
         run: |
@@ -37,27 +37,38 @@ jobs:
           ruff check . --ignore E501
         continue-on-error: true
 
+      - name: APEX status check
+        run: python apex_cli.py status
+
       - name: Run tests
         run: |
           pytest tests/ -v --tb=short
         continue-on-error: true
 
-      - name: Validate AutoCAD connector (ezdxf)
+      - name: Generate all blueprint formats
+        run: |
+          python apex_cli.py blueprint --all --output /tmp/CCL-002-test
+
+      - name: Verify outputs exist
         run: |
           python -c "
-          import sys, os
-          sys.path.insert(0, '.')
-          from connectors.autocad_connector import mcp_action_draw_ccl002
-          result = mcp_action_draw_ccl002({'output_path': '/tmp/CCL-002-test.dxf'})
-          assert result['status'] == 'success'
-          assert os.path.exists('/tmp/CCL-002-test.dxf')
-          print('CCL-002 DXF OK:', result['output'])
+          import os
+          for ext in ['dxf', 'pdf', 'png']:
+              path = f'/tmp/CCL-002-test.{ext}'
+              size = os.path.getsize(path) if os.path.exists(path) else 0
+              status = 'OK' if size > 0 else 'MISSING'
+              print(f'[{ext.upper()}] {path} ({size} bytes) -- {status}')
+              assert size > 0, f'{ext} output missing or empty'
+          print('All blueprint formats validated.')
           "
 
-      - name: Upload CCL-002 DXF artifact
+      - name: Upload blueprint artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: CCL-002-piping-plan
-          path: /tmp/CCL-002-test.dxf
+          name: APEX-blueprints-CCL-002
+          path: |
+            /tmp/CCL-002-test.dxf
+            /tmp/CCL-002-test.pdf
+            /tmp/CCL-002-test.png
           retention-days: 30
