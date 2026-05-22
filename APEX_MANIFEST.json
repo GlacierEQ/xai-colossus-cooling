@@ -8,23 +8,23 @@
   "github_org": "GlacierEQ",
   "repo": "xai-colossus-cooling",
   "phases": [
-    {"id": 0, "name": "Site Selection & Geotechnical", "status": "COMPLETE"},
-    {"id": 1, "name": "Foundation Engineering",        "status": "COMPLETE"},
-    {"id": 2, "name": "Water Delivery & Management",   "status": "COMPLETE"},
-    {"id": 3, "name": "Building Architecture & Shell", "status": "COMPLETE"},
-    {"id": 4, "name": "Server & GPU Architecture",    "status": "COMPLETE"},
-    {"id": "5A", "name": "Cooling — First Principles",  "status": "COMPLETE"},
-    {"id": "5B", "name": "Direct Liquid Cooling (DLC)", "status": "COMPLETE"},
-    {"id": "5C", "name": "Immersion Cooling",           "status": "COMPLETE"},
-    {"id": "5D", "name": "Chiller Plant & Heat Rejection","status": "COMPLETE"},
-    {"id": 6,  "name": "Power Systems",                "status": "COMPLETE"},
-    {"id": 7,  "name": "Digital Twin",                 "status": "COMPLETE"}
+    {"id": 0,    "name": "Site Selection & Geotechnical",      "status": "COMPLETE"},
+    {"id": 1,    "name": "Foundation Engineering",             "status": "COMPLETE"},
+    {"id": 2,    "name": "Water Delivery & Management",        "status": "COMPLETE"},
+    {"id": 3,    "name": "Building Architecture & Shell",      "status": "COMPLETE"},
+    {"id": 4,    "name": "Server & GPU Architecture",         "status": "COMPLETE"},
+    {"id": "5A", "name": "Cooling — First Principles",        "status": "COMPLETE"},
+    {"id": "5B", "name": "Direct Liquid Cooling (DLC)",       "status": "COMPLETE"},
+    {"id": "5C", "name": "Immersion Cooling",                 "status": "COMPLETE"},
+    {"id": "5D", "name": "Chiller Plant & Heat Rejection",    "status": "COMPLETE"},
+    {"id": 6,    "name": "Power Systems",                     "status": "COMPLETE"},
+    {"id": 7,    "name": "Digital Twin",                      "status": "COMPLETE"}
   ],
   "connectors": [
     {"name": "water-management",  "path": "connectors/water-management/",  "status": "active"},
     {"name": "gpu-thermal",       "path": "connectors/gpu-thermal/",       "status": "active"},
     {"name": "power-systems",     "path": "connectors/power-systems/",     "status": "active"},
-    {"name": "cooling-plant",     "path": "connectors/cooling-plant/",     "status": "planned"}
+    {"name": "cooling-plant",     "path": "connectors/cooling-plant/",     "status": "active"}
   ],
   "digital_twin": {
     "influxdb_bucket": "colossus",
@@ -35,7 +35,9 @@
       "colossus.power.transfer",
       "colossus.power.blackstart",
       "colossus.water.events",
-      "colossus.gpu.thermal"
+      "colossus.gpu.thermal",
+      "colossus.cooling.chiller",
+      "colossus.cooling.tower"
     ],
     "grafana_dashboard": "digital-twin/grafana_dashboard.json",
     "composer": "digital-twin/twin_state.py",
@@ -52,7 +54,10 @@
     "ups_autonomy_min": 15,
     "black_start_to_full_load_min": 15,
     "cistern_autonomy_hrs": 72,
-    "gpu_count_target": 2000000
+    "gpu_count_target": 2000000,
+    "chiller_cop": 7.8,
+    "free_cooling_hours_yr": 4000,
+    "cooling_capacity_gw": 1.44
   },
   "colossus_gateway_registration": {
     "gateway_repo": "GlacierEQ/colossus-gateway",
