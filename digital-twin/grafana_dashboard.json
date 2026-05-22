@@ -1,0 +1,9 @@
+{
+  "title": "Colossus Facility Twin",
+  "panels": [
+    {"id": 1, "title": "PUE Trend", "measurement": "colossus_kpi", "filter": "kpi_name=pue"},
+    {"id": 2, "title": "Water Source Status", "measurement": "colossus_water_flow", "groupBy": ["source"]},
+    {"id": 3, "title": "GPU Thermal by Zone", "measurement": "colossus_gpu_thermal", "groupBy": ["zone_id"]},
+    {"id": 4, "title": "Power Capacity", "measurement": "colossus_power", "groupBy": ["source"]}
+  ]
+}
