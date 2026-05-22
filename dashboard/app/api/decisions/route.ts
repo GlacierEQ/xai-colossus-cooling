@@ -1,9 +1,14 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 const MASTERMIND_URL   = process.env.MASTERMIND_URL   || 'http://localhost:4000'
 const COLOSSUS_API_KEY = process.env.COLOSSUS_API_KEY || ''
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const authHeader = req.headers.get('x-api-key')
+  if (authHeader !== COLOSSUS_API_KEY) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const res = await fetch(`${MASTERMIND_URL}/api/decisions?limit=20`, {
       headers: { Authorization: `Bearer ${COLOSSUS_API_KEY}` },
