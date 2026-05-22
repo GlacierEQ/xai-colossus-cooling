@@ -1,97 +1,157 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://glaciereq.local/schemas/m2a/request-envelope.schema.json",
-  "title": "M2A Request Envelope",
-  "description": "Typed request contract for M2A and MCP-to-All routing.",
+  "$id": "https://github.com/GlacierEQ/xai-colossus-cooling/schemas/m2a/request-envelope.schema.json",
+  "title": "M2A Broadcast Request Envelope",
+  "description": "Typed broadcast request contract for the MCP-to-All selective fabric. One request can be routed to many responders; middleware ranks and bundles responses.",
   "type": "object",
-  "additionalProperties": false,
-  "required": [
-    "message_id",
-    "protocol",
-    "intent",
-    "source",
-    "target_scope"
-  ],
+  "required": ["request_id", "request_type", "issued_at", "issuer", "payload"],
   "properties": {
-    "message_id": {
+    "request_id": {
       "type": "string",
-      "minLength": 1
+      "format": "uuid",
+      "description": "Globally unique identifier for this broadcast request (UUIDv4)"
     },
-    "protocol": {
+    "request_type": {
       "type": "string",
-      "enum": ["m2a", "mcp_to_all"]
+      "enum": [
+        "request_forecast",
+        "request_zone_snapshot",
+        "request_piston_status",
+        "emergency_broadcast",
+        "export_document",
+        "run_analytics",
+        "audit_query"
+      ],
+      "description": "Semantic type of the broadcast — drives which responders are eligible"
     },
-    "intent": {
+    "issued_at": {
       "type": "string",
-      "minLength": 1
+      "format": "date-time",
+      "description": "ISO 8601 UTC timestamp when the broadcast was issued"
     },
-    "source": {
-      "type": "string",
-      "minLength": 1
-    },
-    "target_scope": {
-      "type": "string",
-      "enum": ["single", "pillar", "broadcast"]
-    },
-    "target": {
-      "type": "string"
-    },
-    "domains": {
-      "type": "array",
-      "items": { "type": "string" },
-      "uniqueItems": true
-    },
-    "required_capabilities": {
-      "type": "array",
-      "items": { "type": "string" },
-      "uniqueItems": true
-    },
-    "context": {
+    "issuer": {
       "type": "object",
-      "additionalProperties": true
-    },
-    "routing": {
-      "type": "object",
-      "additionalProperties": false,
+      "required": ["node_id", "node_type"],
       "properties": {
-        "mode": {
+        "node_id": {
           "type": "string",
-          "enum": ["direct", "relevance_filtered_broadcast", "pillar_broadcast"]
+          "description": "Unique node identifier of the issuing agent or service"
+        },
+        "node_type": {
+          "type": "string",
+          "enum": ["orchestrator", "dashboard", "mcp_server", "specialist_agent", "runtime", "audit"],
+          "description": "Class of the issuing node"
+        },
+        "pillar": {
+          "type": "string",
+          "enum": ["runtime", "analytics", "memory", "document", "telemetry", "audit", "all"],
+          "description": "Pillar scope — restricts broadcast to nodes within this pillar. Use 'all' for cross-pillar."
+        }
+      }
+    },
+    "target_filter": {
+      "type": "object",
+      "description": "Optional routing constraints applied by the middleware relevance router",
+      "properties": {
+        "required_capabilities": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Responder must declare ALL of these capabilities to be eligible"
+        },
+        "required_domains": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Responder must match at least one domain"
+        },
+        "pillar_scope": {
+          "type": "string",
+          "enum": ["runtime", "analytics", "memory", "document", "telemetry", "audit", "all"],
+          "description": "Pillar-scoped broadcast — only nodes in this pillar receive the broadcast"
         },
         "max_responders": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 1,
+          "maximum": 100,
+          "default": 10,
+          "description": "Maximum number of responders allowed to reply. Middleware suppresses excess."
         },
-        "suppress_irrelevant": {
-          "type": "boolean"
-        },
-        "bundle_strategy": {
+        "latency_class": {
           "type": "string",
-          "enum": ["first", "rank_and_merge", "rank_only"]
+          "enum": ["realtime", "near_realtime", "batch"],
+          "description": "Required response latency class — filters out slow responders for realtime requests"
         }
       }
     },
-    "auth": {
+    "payload": {
       "type": "object",
-      "additionalProperties": false,
+      "description": "Request-type-specific payload. Schema varies by request_type.",
       "properties": {
-        "mode": {
+        "zone_ids": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Target thermal zone IDs (e.g. 'zone-01' through 'zone-48')"
+        },
+        "forecast_horizon_minutes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 120,
+          "description": "How far ahead to forecast (minutes). Used with request_forecast."
+        },
+        "emergency_level": {
           "type": "string",
-          "enum": ["none", "api_key", "token", "internal"]
+          "enum": ["WARNING", "CRITICAL", "SCRAM"],
+          "description": "Emergency severity. Used with emergency_broadcast only."
+        },
+        "context": {
+          "type": "object",
+          "description": "Arbitrary structured context payload passed through to responders"
         }
       }
     },
-    "trace": {
+    "sla": {
       "type": "object",
-      "additionalProperties": false,
+      "description": "Service level agreement for this broadcast",
       "properties": {
-        "session_id": { "type": "string" },
-        "audit": { "type": "boolean" },
-        "priority": {
-          "type": "string",
-          "enum": ["low", "normal", "high", "critical"]
+        "timeout_ms": {
+          "type": "integer",
+          "minimum": 50,
+          "maximum": 30000,
+          "default": 2000,
+          "description": "Maximum ms to wait for responses before middleware closes the bundle"
+        },
+        "min_responses": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 1,
+          "description": "Minimum responses required before bundle is considered valid"
         }
       }
     }
-  }
+  },
+  "examples": [
+    {
+      "request_id": "a3f1c2d4-0000-4e5b-8f6a-123456789abc",
+      "request_type": "request_zone_snapshot",
+      "issued_at": "2026-05-21T21:08:00Z",
+      "issuer": {
+        "node_id": "orchestrator-apex-01",
+        "node_type": "orchestrator",
+        "pillar": "runtime"
+      },
+      "target_filter": {
+        "required_capabilities": ["zone_telemetry"],
+        "pillar_scope": "telemetry",
+        "max_responders": 5,
+        "latency_class": "realtime"
+      },
+      "payload": {
+        "zone_ids": ["zone-01", "zone-02", "zone-03"],
+        "context": { "triggered_by": "thermal_anomaly_detector" }
+      },
+      "sla": {
+        "timeout_ms": 500,
+        "min_responses": 1
+      }
+    }
+  ]
 }
