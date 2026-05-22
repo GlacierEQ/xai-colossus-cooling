@@ -1,0 +1,52 @@
+{
+  "apex_version": "1.0",
+  "connector_id": "colossus-cooling-v2",
+  "connector_name": "xAI Colossus Cooling — APEX Swarm Fabric",
+  "owner": "GlacierEQ",
+  "author": "Casey Barton",
+  "repo": "GlacierEQ/xai-colossus-cooling",
+  "branch": "feat/m2a-swarm-fabric",
+  "version": "0.1.0",
+  "built_at": "2026-05-21T00:00:00Z",
+  "status": "active",
+  "pillar_tags": ["cooling", "gpu_thermal", "water_management", "telemetry", "security"],
+  "hub_repos": [
+    "GlacierEQ/colossus-gateway",
+    "GlacierEQ/apex-connector-registry",
+    "GlacierEQ/mastermind",
+    "GlacierEQ/aspen-grove-operator"
+  ],
+  "phases": {
+    "phase_0": {"name": "Site Selection & Geotechnical", "status": "documented"},
+    "phase_1": {"name": "Foundation Engineering", "status": "documented"},
+    "phase_2": {"name": "Water Delivery & Management", "status": "implemented",
+                 "modules": ["WaterManagementController", "CisternMonitor", "ROPlantController", "GrokPreCoolingEngine"]},
+    "phase_3": {"name": "Architecture & TEMPEST Security", "status": "documented"},
+    "phase_4": {"name": "GPU Cluster & Servers", "status": "implemented",
+                 "modules": ["GPUClusterAgent", "NVL72NodeRegistry", "ThermalThrottleCoordinator"]},
+    "phase_5": {"name": "Cooling System PUE 1.03", "status": "documented"},
+    "phase_6": {"name": "Power Systems", "status": "pending"},
+    "phase_7": {"name": "Digital Twin", "status": "pending"},
+    "phase_8": {"name": "Commissioning", "status": "documented"}
+  },
+  "kpis": {
+    "pue_target": 1.03,
+    "wci_target_l_per_kwh": 0.0,
+    "cistern_autonomy_hr": 72,
+    "gpu_mean_die_temp_c": 72,
+    "cluster_gpus": 2000000,
+    "nvl72_nodes": 27778,
+    "water_sources": 4,
+    "ro_output_l_per_day": 500000
+  },
+  "integrations": {
+    "grok_ws": "wss://api.x.ai/v1/realtime",
+    "kafka_topics": ["colossus.cooling.events", "colossus.gpu.thermal", "colossus.water.flow"],
+    "influxdb_measurement": ["colossus_water_flow", "colossus_gpu_thermal"],
+    "grafana": true,
+    "flink": true
+  },
+  "entrypoint": "python main.py",
+  "language": "python",
+  "python_version": ">=3.11"
+}

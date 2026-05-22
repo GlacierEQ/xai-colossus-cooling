@@ -1,158 +1,166 @@
-# 🧊 xAI Colossus Cooling — APEX HYPERION-THERMAL-NEXUS
+# 🏗️ xAI Colossus Cooling — APEX Swarm Fabric
 
-**Intelligent thermal management for hyperscale AI compute at Colossus scale.**  
-Built by [GlacierEQ](https://github.com/GlacierEQ) · Sovereign APEX Stack · Ring -3 Codex
-
-> **Status:** 🟢 Phase 2 Deployment Ready · PUE Target `<1.15` · Emergency Response `<50ms`
-
----
-
-## The Problem
-
-Colossus-scale GPU clusters (100,000+ H100/H200 nodes) generate extreme thermal loads that current infrastructure handles reactively, in silos, at massive cost:
-
-- **$15–40M/year** in cooling overhead across the Colossus fleet
-- GPU temperatures running 55–80°C vs an achievable 35–42°C
-- Emergency response measured in seconds, not milliseconds
-- Zero predictive capability — cooling reacts, never anticipates
+> **Repo:** `GlacierEQ/xai-colossus-cooling` · **Branch:** `feat/m2a-swarm-fabric`  
+> **Status:** Active Development · **Version:** 0.1.0  
+> **Owner:** Casey Barton / GlacierEQ · **APEX Architecture**
 
 ---
 
-## The Solution
+## 🎯 Mission
 
-A **bio-inspired, AI-powered thermal intelligence system** treating the datacenter as a living organism:
-
-| Metric | Target | Industry Baseline | Improvement |
-|---|---|---|---|
-| **PUE** | < 1.15 | 1.67 | 31% better |
-| **Emergency Response** | < 50ms | 2–5s | **100–150× faster** |
-| **GPU Temp Range** | 35–42°C | 55–80°C | 20°C reduction |
-| **Cost Reduction** | −45% | baseline | $millions/year |
-| **Uptime SLA** | 99.999% | 99.9% | 10× reliability |
+Full-stack intelligent cooling and GPU cluster management for xAI Colossus v2 — a 2,000,000 GPU exascale AI datacenter. This repo implements the **M2A Swarm Fabric**: a multi-agent, AI-integrated orchestration layer that manages water delivery, thermal control, GPU cluster health, and predictive pre-cooling in real time.
 
 ---
 
-## Architecture
-
-```
-APEX Thermal Orchestrator  (100ms tick)
-         │
-    4 Piston Modes
-    ├── SHADOW    — 24/7 silent monitor, epigenetic learning
-    ├── MICROWAVE — 8–15 parallel prediction threads, 3-step forecast
-    ├── SUPERNOVA — sub-50ms emergency cascade, zone-wide force cooling
-    └── GHOST     — invisible parallel optimization, zero alert surface
-         │
-    M2A + MCP-to-All Swarm Fabric
-    (selective broadcast · relevance-routed · Aspen Grove audited)
-         │
-    Aspen Grove v7 Memory  (5-Sink)
-    ├── Mem0       — short-term thermal patterns
-    ├── SuperMemory — evolutionary cooling intelligence
-    ├── Neo4j      — zone correlation graphs
-    ├── Pinecone   — anomaly vector store
-    └── Supabase   — raw telemetry time-series
-         │
-    CORE-THINK Forecasting
-    ├── 3-step thermal prediction (85%+ accuracy)
-    ├── Piston mode recommendation
-    └── Predictive activation  (<500ms)
-         │
-    Cooling Hardware Interface
-    └── sensors/ · cells/ · connectors/
-```
-
----
-
-## Physics Engine
-
-The `xai-cooling-physics-core.py` engine is built on first principles:
-
-- **Heat transfer:** `Q = ṁ × Cp × ΔT` with per-coolant accurate specific heat
-- **Coolants:** Water, Fluorinert FC-72 (ρ=1.68 kg/L), Novec 7100, PG/Water
-- **Zone model:** Hot (20% racks, 100% load) / Warm (50%, 85%) / Cold (30%, 65%)
-- **GPU throttle:** H100/H200 SXM onset at **83°C** (corrected from legacy 85°C)
-- **Seasonal variation:** `--season 1.12` for summer peak ambient
-- **Async sensor hook:** ready to wire `sensors/telemetry_stream.py`
-
-```bash
-# Run simulation — water coolant, 128 racks, 64 GPUs/rack
-python xai-cooling-physics-core.py --racks 128 --gpus 64 --coolant water
-
-# Fluorinert immersion cooling simulation
-python xai-cooling-physics-core.py --racks 128 --gpus 64 --coolant fluorinert --season 1.12
-```
-
----
-
-## M2A Swarm Protocol
-
-The cooling stack is swarm-native via the **M2A + MCP-to-All** fabric:
-
-- One typed request broadcasts to all potentially relevant agents
-- Only capable agents respond — irrelevant nodes stay silent
-- Middleware ranks and bundles responses by confidence
-- Aspen Grove v7 audits every exchange
-
-See [`docs/M2A_SWARM_PROTOCOL.md`](docs/M2A_SWARM_PROTOCOL.md) and schemas in [`schemas/m2a/`](schemas/m2a/).
-
----
-
-## Repository Structure
+## 🗂️ Repository Structure
 
 ```
 xai-colossus-cooling/
-├── xai-cooling-physics-core.py        # First-principles thermal engine (v2.0)
-├── xai-cooling-masterswarm-manifest.json
-├── apex-core/                         # APEX orchestration engine
-├── sensors/                           # Telemetry ingestion
-├── cells/                             # Compute cell management
-├── simulation/                        # Thermal simulation runners
-├── connectors/                        # Hardware + MCP connectors
-├── schemas/m2a/                       # M2A swarm protocol schemas
-├── api/                               # REST API surface
-├── auth/                              # Auth layer
-├── dashboard/  · vercel-ui/           # Operator dashboards
-├── database/   · schemas/             # Data layer
-├── mastermind-fusion/                 # Ring 1 Mastermind bridge
-├── .shadow/                           # Hidden ops layer
-└── docs/                              # Architecture docs
+├── connectors/
+│   ├── water-management/          # Phase 2 — Triple-redundancy water supply
+│   │   ├── controller.py          # Source failover: Municipal→Cistern→RO→AWG
+│   │   ├── cistern_monitor.py     # 10M litre tank: autonomy, leak detection
+│   │   ├── ro_plant.py            # 500K L/day RO: TDS, CIP, membrane health
+│   │   └── grok_precooling.py    # Grok 15-min thermal lookahead
+│   ├── gpu-cluster-agent/         # Phase 4 — 2M GPU hierarchy
+│   │   ├── agent.py               # Top-level orchestrator
+│   │   ├── node_registry.py       # 27,778 NVL72 nodes, 14-zone topology
+│   │   └── thermal_coordinator.py # 4-tier throttle policy, emergency shutdown
+│   ├── m2a-middleware/            # M2A Swarm core router + aggregator
+│   ├── telemetry-agent/           # 800M stream pipeline (Kafka→Flink→InfluxDB)
+│   ├── tempest-scif/              # TEMPEST/SCIF security layer
+│   └── commissioning/             # 8-phase commissioning sequence
+├── digital-twin/                  # Digital twin integration stack
+├── schemas/                       # Protobuf schemas
+├── main.py                        # Unified async entrypoint
+├── APEX_MANIFEST.json             # Machine-readable build manifest
+└── CHANGELOG.md
 ```
 
 ---
 
-## Deployment Roadmap
+## 🏛️ System Architecture
 
-| Phase | Status | Duration | Deliverable |
-|---|---|---|---|
-| **Phase 1** | ✅ Complete | — | APEX orchestrator, 4 piston modes, security hardening |
-| **Phase 2** | 🚀 Ready | 4 weeks | Aspen Grove v7, Neo4j graphs, CORE-THINK, live dashboard |
-| **Phase 3** | 🔧 In Dev | 8 weeks | Immersion cooling, job scheduler, cost optimizer |
-| **Phase 4** | 📊 Planning | 12 weeks | 100K-node stress test, production rollout |
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    COLOSSUS v2 FACILITY                      │
+│                                                             │
+│  ┌─────────────┐  ┌──────────────┐  ┌──────────────────┐  │
+│  │  WATER MGT  │  │  GPU CLUSTER │  │  TELEMETRY PIPE  │  │
+│  │  Phase 2    │  │  Phase 4     │  │  800M streams/s  │  │
+│  │             │  │              │  │                  │  │
+│  │ Municipal   │  │ 14 Zones     │  │ Kafka Topics:    │  │
+│  │ Cistern 10M │  │ 27,778 NVL72 │  │ cooling.events   │  │
+│  │ RO 500K L/d │  │ 2M GPUs      │  │ gpu.thermal      │  │
+│  │ AWG Backup  │  │ H200/GB200   │  │ water.flow       │  │
+│  └──────┬──────┘  └──────┬───────┘  └────────┬─────────┘  │
+│         │                │                    │            │
+│  ┌──────▼────────────────▼────────────────────▼─────────┐  │
+│  │              M2A SWARM FABRIC (Router)                │  │
+│  │     Pillar routing: cooling | gpu_thermal | water     │  │
+│  └──────────────────────────┬────────────────────────────┘  │
+│                             │                               │
+│  ┌──────────────────────────▼────────────────────────────┐  │
+│  │           GROK AI PRE-COOLING ENGINE                   │  │
+│  │   wss://api.x.ai/v1/realtime · 15-min lookahead       │  │
+│  │   Valve pre-staging · Thermal spike prevention        │  │
+│  └──────────────────────────┬────────────────────────────┘  │
+│                             │                               │
+│  ┌──────────────────────────▼────────────────────────────┐  │
+│  │              DIGITAL TWIN + OBSERVABILITY             │  │
+│  │   InfluxDB → Grafana · Flink stream processing        │  │
+│  │   PUE target: 1.03 · WCI: 0.0 L/kWh                 │  │
+│  └───────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## Quick Start
+## 📊 System KPIs
+
+| Metric | Target | Critical Alert |
+|--------|--------|----------------|
+| **PUE** | 1.03 | > 1.10 |
+| **WCI** | 0.0 L/kWh (zero-evaporation) | > 0.5 L/kWh |
+| **Cistern autonomy** | 72 hr | < 12 hr |
+| **GPU mean die temp** | ≤ 72°C | ≥ 90°C |
+| **Water source switch** | < 5 s | > 10 s |
+| **RO product TDS** | < 10 ppm | > 25 ppm |
+| **Pre-cooling lag** | < 60 s | > 120 s |
+| **Telemetry throughput** | 800M streams/s | < 600M/s |
+| **Cluster power** | ≤ 1.4 GW | > 1.5 GW |
+| **Throttle events** | 0/day | > 5/day |
+
+---
+
+## 🚀 Quick Start
 
 ```bash
+# Clone
 git clone https://github.com/GlacierEQ/xai-colossus-cooling
 cd xai-colossus-cooling
+
+# Install dependencies
 pip install -r requirements.txt
 
-# Physics simulation
-python xai-cooling-physics-core.py --racks 128 --gpus 64
+# Set environment
+export GROK_API_KEY=your_key_here
+export KAFKA_BOOTSTRAP=localhost:9092
+export INFLUX_URL=http://localhost:8086
+export INFLUX_TOKEN=your_token
+export INFLUX_ORG=glaciereq
+export INFLUX_BUCKET=colossus
 
-# Full APEX orchestrator
-python apex-core/orchestrator.py
+# Run full system
+python main.py
+
+# Run single agent
+python -m connectors.water-management.controller
+python -m connectors.gpu-cluster-agent.agent
 ```
 
 ---
 
-## Open Issues
+## 🔌 APEX Integration
 
-- [#11 — M2A + MCP-to-All swarm fabric (P1)](https://github.com/GlacierEQ/xai-colossus-cooling/issues/11)
+This repo is a registered connector in the **GlacierEQ APEX ecosystem**:
+
+| Hub Repo | Role |
+|----------|------|
+| `GlacierEQ/colossus-gateway` | Primary integration hub |
+| `GlacierEQ/apex-connector-registry` | Connector registration |
+| `GlacierEQ/mastermind` | APEX capability mapping |
+| `GlacierEQ/aspen-grove-operator` | Operational framework |
+
+Connector ID: `colossus-cooling-v2`  
+Pillar tags: `cooling`, `gpu_thermal`, `water_management`, `telemetry`
 
 ---
 
-**Contact:** Casey Barton · GlacierEQ Sovereign Stack  
-**Related:** [mastermind-colossus](https://github.com/GlacierEQ/mastermind-colossus) · [APEX-MEMORY-OMNIBUS](https://github.com/GlacierEQ/APEX-MEMORY-OMNIBUS) · [aspen-grove-operator-v7](https://github.com/GlacierEQ/aspen-grove-operator-v7)
+## 📋 Phase Completion
+
+| Phase | Name | Status |
+|-------|------|--------|
+| 0 | Site Selection & Geotechnical | ✅ Documented |
+| 1 | Foundation Engineering | ✅ Documented |
+| **2** | **Water Delivery & Management** | ✅ **Implemented** |
+| 3 | Architecture & Security | ✅ TEMPEST/SCIF |
+| **4** | **GPU Cluster & Servers** | ✅ **Implemented** |
+| 5 | Cooling (PUE 1.03) | ✅ Documented |
+| 6 | Power Systems | 🔜 Next |
+| 7 | Digital Twin | 🔜 Next |
+| 8 | Commissioning | ✅ 8-phase sequence |
+
+---
+
+## 🛡️ Security
+
+- TEMPEST/SCIF EMI shielding specs in `connectors/tempest-scif/`
+- 7-layer physical security protocol
+- 280× Triple Friction Pendulum seismic isolators
+- All Kafka topics: TLS + SASL-SCRAM-SHA-512
+- API keys via environment variables only — never committed
+
+---
+
+*Built with APEX architecture by GlacierEQ · Casey Barton*
