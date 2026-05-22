@@ -1,52 +1,63 @@
 {
-  "apex_version": "1.0",
-  "connector_id": "colossus-cooling-v2",
-  "connector_name": "xAI Colossus Cooling — APEX Swarm Fabric",
-  "owner": "GlacierEQ",
-  "author": "Casey Barton",
-  "repo": "GlacierEQ/xai-colossus-cooling",
-  "branch": "feat/m2a-swarm-fabric",
-  "version": "0.1.0",
-  "built_at": "2026-05-21T00:00:00Z",
-  "status": "active",
-  "pillar_tags": ["cooling", "gpu_thermal", "water_management", "telemetry", "security"],
-  "hub_repos": [
-    "GlacierEQ/colossus-gateway",
-    "GlacierEQ/apex-connector-registry",
-    "GlacierEQ/mastermind",
-    "GlacierEQ/aspen-grove-operator"
+  "manifest_version": "1.0.0",
+  "project": "xAI Colossus 2 — Hyper-Intelligent Build",
+  "apex_build": "APEX-COLOSSUS-v2",
+  "author": "GlacierEQ / Casey Barton",
+  "created": "2026-05-21",
+  "description": "Complete engineering blueprint and automation stack for the world's largest AI supercomputer facility. Covers geotechnical, foundation, water, architecture, GPU cluster, cooling, power systems, and digital twin.",
+  "github_org": "GlacierEQ",
+  "repo": "xai-colossus-cooling",
+  "phases": [
+    {"id": 0, "name": "Site Selection & Geotechnical", "status": "COMPLETE"},
+    {"id": 1, "name": "Foundation Engineering",        "status": "COMPLETE"},
+    {"id": 2, "name": "Water Delivery & Management",   "status": "COMPLETE"},
+    {"id": 3, "name": "Building Architecture & Shell", "status": "COMPLETE"},
+    {"id": 4, "name": "Server & GPU Architecture",    "status": "COMPLETE"},
+    {"id": "5A", "name": "Cooling — First Principles",  "status": "COMPLETE"},
+    {"id": "5B", "name": "Direct Liquid Cooling (DLC)", "status": "COMPLETE"},
+    {"id": "5C", "name": "Immersion Cooling",           "status": "COMPLETE"},
+    {"id": "5D", "name": "Chiller Plant & Heat Rejection","status": "COMPLETE"},
+    {"id": 6,  "name": "Power Systems",                "status": "COMPLETE"},
+    {"id": 7,  "name": "Digital Twin",                 "status": "COMPLETE"}
   ],
-  "phases": {
-    "phase_0": {"name": "Site Selection & Geotechnical", "status": "documented"},
-    "phase_1": {"name": "Foundation Engineering", "status": "documented"},
-    "phase_2": {"name": "Water Delivery & Management", "status": "implemented",
-                 "modules": ["WaterManagementController", "CisternMonitor", "ROPlantController", "GrokPreCoolingEngine"]},
-    "phase_3": {"name": "Architecture & TEMPEST Security", "status": "documented"},
-    "phase_4": {"name": "GPU Cluster & Servers", "status": "implemented",
-                 "modules": ["GPUClusterAgent", "NVL72NodeRegistry", "ThermalThrottleCoordinator"]},
-    "phase_5": {"name": "Cooling System PUE 1.03", "status": "documented"},
-    "phase_6": {"name": "Power Systems", "status": "pending"},
-    "phase_7": {"name": "Digital Twin", "status": "pending"},
-    "phase_8": {"name": "Commissioning", "status": "documented"}
+  "connectors": [
+    {"name": "water-management",  "path": "connectors/water-management/",  "status": "active"},
+    {"name": "gpu-thermal",       "path": "connectors/gpu-thermal/",       "status": "active"},
+    {"name": "power-systems",     "path": "connectors/power-systems/",     "status": "active"},
+    {"name": "cooling-plant",     "path": "connectors/cooling-plant/",     "status": "planned"}
+  ],
+  "digital_twin": {
+    "influxdb_bucket": "colossus",
+    "kafka_topics": [
+      "colossus.twin.state",
+      "colossus.power.events",
+      "colossus.power.turbines",
+      "colossus.power.transfer",
+      "colossus.power.blackstart",
+      "colossus.water.events",
+      "colossus.gpu.thermal"
+    ],
+    "grafana_dashboard": "digital-twin/grafana_dashboard.json",
+    "composer": "digital-twin/twin_state.py",
+    "schema": "digital-twin/influx_schema.py"
   },
-  "kpis": {
-    "pue_target": 1.03,
-    "wci_target_l_per_kwh": 0.0,
-    "cistern_autonomy_hr": 72,
-    "gpu_mean_die_temp_c": 72,
-    "cluster_gpus": 2000000,
-    "nvl72_nodes": 27778,
-    "water_sources": 4,
-    "ro_output_l_per_day": 500000
+  "kpi_targets": {
+    "pue": 1.03,
+    "wci_l_per_kwh": 0.02,
+    "gpu_tj_max_c": 85,
+    "power_capacity_mw": 1000,
+    "turbine_capacity_mw": 400,
+    "ats_transfer_ms": 100,
+    "sts_transfer_ms": 4,
+    "ups_autonomy_min": 15,
+    "black_start_to_full_load_min": 15,
+    "cistern_autonomy_hrs": 72,
+    "gpu_count_target": 2000000
   },
-  "integrations": {
-    "grok_ws": "wss://api.x.ai/v1/realtime",
-    "kafka_topics": ["colossus.cooling.events", "colossus.gpu.thermal", "colossus.water.flow"],
-    "influxdb_measurement": ["colossus_water_flow", "colossus_gpu_thermal"],
-    "grafana": true,
-    "flink": true
-  },
-  "entrypoint": "python main.py",
-  "language": "python",
-  "python_version": ">=3.11"
+  "colossus_gateway_registration": {
+    "gateway_repo": "GlacierEQ/colossus-gateway",
+    "connector_registry": "GlacierEQ/apex-connector-registry",
+    "registration_status": "pending_gateway_sync",
+    "manifest_endpoint": "https://raw.githubusercontent.com/GlacierEQ/xai-colossus-cooling/main/APEX_MANIFEST.json"
+  }
 }
