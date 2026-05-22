@@ -1,71 +1,161 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://glaciereq.local/schemas/m2a/response-bundle.schema.json",
+  "$id": "https://github.com/GlacierEQ/xai-colossus-cooling/schemas/m2a/response-bundle.schema.json",
   "title": "M2A Response Bundle",
-  "description": "Bundled response contract for relevance-filtered M2A and MCP-to-All routing.",
+  "description": "Aggregated, ranked bundle of responses from eligible responders. Produced by the middleware relevance router after collecting replies within the SLA timeout window.",
   "type": "object",
-  "additionalProperties": false,
-  "required": [
-    "message_id",
-    "bundle_status"
-  ],
+  "required": ["bundle_id", "request_id", "bundled_at", "status", "responses", "metadata"],
   "properties": {
-    "message_id": {
+    "bundle_id": {
       "type": "string",
-      "minLength": 1
+      "format": "uuid",
+      "description": "Unique ID for this response bundle"
     },
-    "bundle_status": {
+    "request_id": {
       "type": "string",
-      "enum": ["complete", "partial", "failed"]
+      "format": "uuid",
+      "description": "ID of the originating broadcast request envelope"
     },
-    "selected_responders": {
+    "bundled_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC timestamp when middleware closed and ranked the bundle"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["complete", "partial", "timeout", "no_responders", "suppressed"],
+      "description": "Bundle completion status. 'partial' = min_responses met but timeout hit before max. 'suppressed' = all responders filtered out."
+    },
+    "responses": {
       "type": "array",
+      "description": "Ranked list of individual responder replies. Index 0 = highest ranked.",
       "items": {
         "type": "object",
-        "additionalProperties": false,
-        "required": ["node_id", "relevance", "confidence"],
+        "required": ["response_id", "responder", "received_at", "latency_ms", "rank_score", "payload"],
         "properties": {
-          "node_id": { "type": "string" },
-          "relevance": {
+          "response_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "responder": {
+            "type": "object",
+            "required": ["node_id", "node_type"],
+            "properties": {
+              "node_id": { "type": "string" },
+              "node_type": {
+                "type": "string",
+                "enum": ["orchestrator", "mcp_server", "specialist_agent", "runtime", "audit", "telemetry", "analytics", "memory"]
+              },
+              "pillar": { "type": "string" }
+            }
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "latency_ms": {
             "type": "number",
             "minimum": 0,
-            "maximum": 1
+            "description": "Round-trip latency in milliseconds from broadcast issue to response receipt"
+          },
+          "rank_score": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0,
+            "description": "Middleware relevance + confidence score (0.0 = lowest, 1.0 = highest)"
           },
           "confidence": {
             "type": "number",
-            "minimum": 0,
-            "maximum": 1
+            "minimum": 0.0,
+            "maximum": 1.0,
+            "description": "Responder self-reported confidence in their answer"
           },
-          "proposed_action": { "type": "string" },
-          "result": {
+          "payload": {
             "type": "object",
-            "additionalProperties": true
+            "description": "Response-type-specific data payload"
           },
-          "cost_class": {
-            "type": "string",
-            "enum": ["low", "medium", "high"]
-          },
-          "latency_class": {
-            "type": "string",
-            "enum": ["fast", "normal", "slow"]
+          "error": {
+            "type": ["object", "null"],
+            "properties": {
+              "code": { "type": "string" },
+              "message": { "type": "string" }
+            }
           }
         }
       }
     },
-    "suppressed_responders": {
-      "type": "integer",
-      "minimum": 0
-    },
-    "bundle_strategy": {
-      "type": "string",
-      "enum": ["first", "rank_and_merge", "rank_only"]
-    },
-    "audit_event_id": {
-      "type": "string"
-    },
-    "errors": {
-      "type": "array",
-      "items": { "type": "string" }
+    "metadata": {
+      "type": "object",
+      "required": ["total_eligible", "total_suppressed", "total_responded", "elapsed_ms"],
+      "description": "Audit metadata for Aspen Grove event logging and digital twin telemetry",
+      "properties": {
+        "total_eligible": {
+          "type": "integer",
+          "description": "Number of registered nodes that matched the broadcast filter"
+        },
+        "total_suppressed": {
+          "type": "integer",
+          "description": "Number of eligible nodes suppressed (max_responders cap or relevance threshold)"
+        },
+        "total_responded": {
+          "type": "integer",
+          "description": "Number of nodes that actually returned a response within SLA timeout"
+        },
+        "elapsed_ms": {
+          "type": "number",
+          "description": "Total time from broadcast issue to bundle close (ms)"
+        },
+        "sla_met": {
+          "type": "boolean",
+          "description": "True if min_responses was met within timeout_ms"
+        },
+        "aspen_grove_event_id": {
+          "type": ["string", "null"],
+          "description": "Aspen Grove audit event ID if the bundle was logged to the audit pipeline"
+        },
+        "influx_series": {
+          "type": ["string", "null"],
+          "description": "InfluxDB measurement series this bundle was written to (for digital twin dashboard)"
+        }
+      }
     }
-  }
+  },
+  "examples": [
+    {
+      "bundle_id": "b7e2a1f0-0001-4c3d-9e8b-abcdef012345",
+      "request_id": "a3f1c2d4-0000-4e5b-8f6a-123456789abc",
+      "bundled_at": "2026-05-21T21:08:00.487Z",
+      "status": "complete",
+      "responses": [
+        {
+          "response_id": "r1a2b3c4-0001-4000-8000-000000000001",
+          "responder": {
+            "node_id": "telemetry-zone-01",
+            "node_type": "telemetry",
+            "pillar": "telemetry"
+          },
+          "received_at": "2026-05-21T21:08:00.312Z",
+          "latency_ms": 312,
+          "rank_score": 0.97,
+          "confidence": 0.99,
+          "payload": {
+            "zone_id": "zone-01",
+            "temp_c": 22.4,
+            "flow_lpm": 1840,
+            "delta_t": 18.2
+          },
+          "error": null
+        }
+      ],
+      "metadata": {
+        "total_eligible": 8,
+        "total_suppressed": 3,
+        "total_responded": 5,
+        "elapsed_ms": 487,
+        "sla_met": true,
+        "aspen_grove_event_id": "ag-evt-00091234",
+        "influx_series": "m2a_bundles"
+      }
+    }
+  ]
 }

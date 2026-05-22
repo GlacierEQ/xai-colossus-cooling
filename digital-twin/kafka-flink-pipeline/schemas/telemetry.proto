@@ -1,0 +1,45 @@
+// Colossus Telemetry Event — Protobuf v3
+// Canonical schema for 800M/day zone sensor stream.
+syntax = "proto3";
+package colossus.telemetry;
+option go_package = "github.com/GlacierEQ/xai-colossus-cooling/proto/telemetry";
+
+message SensorReading {
+  string reading_id          = 1;
+  string sensor_id           = 2;
+  string zone_id             = 3;
+  string rack_id             = 4;
+  string cdu_id              = 5;
+  string sensor_type         = 6; // thermal|flow|pressure|humidity|power|vibration
+  string location            = 7; // inlet|outlet|ambient|chip|coolant
+  double value               = 8;
+  string unit                = 9;
+  string timestamp           = 10; // RFC3339 UTC
+  bool   anomaly             = 11;
+  double z_score             = 12;
+  string gpu_id              = 13; // optional per-GPU thermal
+  double calibration_offset  = 14;
+}
+
+message TelemetryBatch {
+  string batch_id              = 1;
+  string zone_id               = 2;
+  string produced_at           = 3;
+  int32  count                 = 4;
+  repeated SensorReading readings = 5;
+}
+
+message ZoneAggregate {
+  string zone_id       = 1;
+  string sensor_type   = 2;
+  string window_start  = 3;
+  string window_end    = 4;
+  double mean          = 5;
+  double min           = 6;
+  double max           = 7;
+  double p95           = 8;
+  double p99           = 9;
+  double stddev        = 10;
+  int32  sample_count  = 11;
+  int32  anomaly_count = 12;
+}
