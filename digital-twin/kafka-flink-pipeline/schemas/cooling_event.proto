@@ -1,0 +1,34 @@
+// Colossus Cooling Event — Protobuf v3
+// CDU state changes, valve actuation, pump alerts, AI preemptive actions.
+syntax = "proto3";
+package colossus.cooling;
+option go_package = "github.com/GlacierEQ/xai-colossus-cooling/proto/cooling";
+
+enum CoolingEventType {
+  UNKNOWN          = 0;
+  CDU_VALVE_OPEN   = 1;
+  CDU_VALVE_CLOSE  = 2;
+  PUMP_START       = 3;
+  PUMP_STOP        = 4;
+  PUMP_FAULT       = 5;
+  TEMP_ALERT_HIGH  = 6;
+  TEMP_ALERT_LOW   = 7;
+  FLOW_ALERT       = 8;
+  PRESSURE_ALERT   = 9;
+  EMERGENCY_DRAIN  = 10;
+  AI_PREEMPTIVE    = 11; // Grok-driven preemptive action
+}
+
+message CoolingEvent {
+  string           event_id       = 1;
+  string           zone_id        = 2;
+  string           cdu_id         = 3;
+  CoolingEventType type           = 4;
+  string           triggered_by   = 5; // sensor_id | ai_model | operator
+  string           timestamp      = 6;
+  double           value_before   = 7;
+  double           value_after    = 8;
+  string           unit           = 9;
+  string           note           = 10;
+  bool             auto_remediated = 11;
+}

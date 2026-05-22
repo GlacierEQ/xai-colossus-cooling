@@ -1,0 +1,33 @@
+// GPU Thermal Event — Protobuf v3
+// Per-GPU thermal state across 2M GPU cluster (H200/GB200/B200).
+syntax = "proto3";
+package colossus.gpu;
+option go_package = "github.com/GlacierEQ/xai-colossus-cooling/proto/gpu";
+
+message GpuThermalEvent {
+  string event_id      = 1;
+  string gpu_id        = 2;
+  string node_id       = 3;
+  string rack_id       = 4;
+  string zone_id       = 5;
+  string gpu_model     = 6; // H200|GB200|B200
+  double die_temp_c    = 7;
+  double memory_temp_c = 8;
+  double power_w       = 9;
+  double throttle_pct  = 10; // 0=none, 100=full
+  string timestamp     = 11;
+  bool   thermal_alert = 12; // die_temp > 83C
+  bool   in_cooldown   = 13;
+}
+
+message GpuClusterSnapshot {
+  string snapshot_id    = 1;
+  string zone_id        = 2;
+  string captured_at    = 3;
+  int32  gpu_count      = 4;
+  double mean_die_temp  = 5;
+  double max_die_temp   = 6;
+  double total_power_kw = 7;
+  int32  throttled_gpus = 8;
+  int32  alert_gpus     = 9;
+}
