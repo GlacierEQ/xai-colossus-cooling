@@ -8,10 +8,15 @@ import logging
 class CoolingGauntlet:
     def __init__(self):
         self.active_links = [
-            "aspen.ts", "mastermind.ts", "infinityStones.ts", "plethora.ts"
+            "aspen.ts", "mastermind.ts", "infinityStones.ts", "plethora.ts", "stealthTriad.ts"
         ]
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger("CoolingGauntlet")
+
+    def execute_thermal_strike(self, zone_id: str, intensity: float):
+        """Invoke Stealth Triad for a surgical 'Thermal Strike' (Lossless Predator Mode)."""
+        self.logger.info(f"🥷 STEALTH STRIKE: Executing surgical thermal adjustment in {zone_id} (Intensity: {intensity})")
+        return {"status": "STRIKE_AUTHORIZED", "action": "stealth.strike", "mode": "LOSSLESS_PREDATOR"}
 
     def sync_thermal_ledger(self, gpu_id: str, temp_c: float):
         """Zero-egress immutable logging of thermal anomalies."""
