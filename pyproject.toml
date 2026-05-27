@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "xai-colossus-cooling"
+version = "0.1.0"
+description = "Bio-inspired thermal orchestration for datacenters"
+requires-python = ">=3.11"
+
+dependencies = ["numpy>=1.24.0", "scipy>=1.10.0", "pydantic>=2.0.0"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0.0", "pytest-cov>=4.0.0", "black>=23.0.0", "ruff>=0.1.0", "mypy>=1.0.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=xai_colossus_cooling"
+
+[tool.ruff]
+line-length = 100
