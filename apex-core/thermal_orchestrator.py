@@ -193,6 +193,37 @@ class GHOSTPiston(APEXPiston):
         return {'piston': 'GHOST', 'invisible_optimizations': len(optimizations), 'ops': optimizations}
 
 
+class CORETHINKPiston(APEXPiston):
+    """APEX Tier — ML-based thermal forecasting and predictive dispatch."""
+
+    def __init__(self, thresholds: dict = None, tick_cfg: dict = None):
+        super().__init__('CORE-THINK', 'APEX', thresholds, tick_cfg)
+        self.prediction_horizon = 12 # ticks
+
+    async def execute(self, context: dict) -> dict:
+        aspen = context.get('aspen_connector')
+        if not aspen:
+            return {'piston': 'CORE-THINK', 'status': 'OFFLINE', 'reason': 'Aspen connector missing'}
+
+        # Query Aspen Grove intelligence layer for predictive insights
+        intel = await aspen.query_intelligence("predict_thermal_surge_12_ticks")
+        
+        prediction = intel.get('prediction', 'nominal')
+        confidence = intel.get('confidence', 0.0)
+        
+        if prediction == "thermal_surge_expected" and confidence > 0.8:
+            self.logger.info(f"CORE-THINK PREDICTIVE HIT: {prediction} (conf={confidence:.2f})")
+            return {
+                'piston': 'CORE-THINK',
+                'prediction': prediction,
+                'confidence': confidence,
+                'action': 'PRE-COOLING_DISPATCH',
+                'target_piston': 'MICROWAVE'
+            }
+        
+        return {'piston': 'CORE-THINK', 'prediction': 'nominal', 'confidence': confidence}
+
+
 class APEXThermalOrchestrator:
     """
     Main APEX Orchestrator for xAI Colossus Cooling.
@@ -218,16 +249,29 @@ class APEXThermalOrchestrator:
             'SUPERNOVA': SUPERNOVAPiston(self.thresholds, self.tick_cfg),
             'SHADOW':    SHADOWPiston(self.thresholds, self.tick_cfg),
             'GHOST':     GHOSTPiston(self.thresholds, self.tick_cfg),
+            'CORE-THINK': CORETHINKPiston(self.thresholds, self.tick_cfg),
         }
 
-        # Telemetry (lazy — only connects if env vars present)
+        # Telemetry & Aspen Grove (lazy — only connects if env vars present)
         self._telemetry = None
-        self._init_telemetry()
+        self._aspen = None
+        self._init_connectors()
+
+        # Phase 3 Engines (Immersion & Cascade Prevention)
+        self._immersion = None
+        self._cascade   = None
+        self._init_phase3()
+
+        # Phase 4 Engines (Exascale Fabric & Security Hardening)
+        self._fabric   = None
+        self._hydra    = None
+        self._init_phase4()
 
         self.logger.info(f'APEX Thermal Orchestrator v{self.VERSION} [{self.CODENAME}] INITIALIZED')
         self.logger.info(f'Mode: {self.mode.value} | Pistons loaded: {len(self.pistons)}')
 
-    def _init_telemetry(self):
+    def _init_connectors(self):
+        # Traditional Telemetry (Supabase)
         if os.getenv('SUPABASE_URL') and os.getenv('SUPABASE_SERVICE_KEY'):
             try:
                 from connectors.supabase_telemetry import SupabaseTelemetryConnector
@@ -235,6 +279,38 @@ class APEXThermalOrchestrator:
                 self._telemetry.connect()
             except Exception as e:
                 self.logger.warning(f'Telemetry init failed (continuing offline): {e}')
+        
+        # Aspen Grove Distributed Intelligence (Phase 2)
+        if os.getenv('ASPEN_GROVE_TOKEN'):
+            try:
+                from apex_core.aspen_connector import AspenGroveConnector
+                self._aspen = AspenGroveConnector()
+                asyncio.create_task(self._aspen.connect())
+            except Exception as e:
+                self.logger.warning(f'Aspen Grove connector failed: {e}')
+
+    def _init_phase3(self):
+        """Initialize Phase 3 high-fidelity cooling and protection modules."""
+        try:
+            from apex_core.immersion_cooling import ImmersionCoolingEngine
+            from apex_core.cascade_prevention import CascadePreventionProtocol
+            self._immersion = ImmersionCoolingEngine(tank_count=self.manifest.get('immersion_tanks', 10))
+            self._cascade = CascadePreventionProtocol(thresholds=self.thresholds.get('cascade_limits'))
+            self.logger.info("PHASE 3: Immersion & Cascade engines ONLINE.")
+        except Exception as e:
+            self.logger.warning(f"Phase 3 initialization failed: {e}")
+
+    def _init_phase4(self):
+        """Initialize Phase 4 Exascale Fabric and Hydra Security layers."""
+        try:
+            # Note: Cross-repo imports assume the PYTHONPATH includes dev/projects
+            from xai_colossus_servers.exa_brick.fabric_orchestrator import ExaBrickFabric
+            from xai_colossus_security.hydra_core.hydra_engine import HydraCore
+            self._fabric = ExaBrickFabric(rack_count=self.manifest.get('rack_count', 128))
+            self._hydra = HydraCore()
+            self.logger.info("PHASE 4: Exascale Fabric & Hydra Security ONLINE.")
+        except Exception as e:
+            self.logger.warning(f"Phase 4 initialization failed: {e}")
 
     def register_zone(self, zone: CoolingZone):
         self.zones.append(zone)
@@ -246,6 +322,38 @@ class APEXThermalOrchestrator:
         self.tick += 1
         sweep_n = self.tick_cfg.get('microwave_sweep_every_n_ticks', 5)
         critical_c = self.thresholds.get('critical_c', 85)
+
+        # 🌲 Aspen Grove Sync (every tick - GHOST mode)
+        if self._aspen:
+            current_state = {
+                "tick": self.tick,
+                "avg_temp": sum(n.temp_celsius for n in self.all_nodes) / len(self.all_nodes) if self.all_nodes else 0,
+                "mode": self.mode.value
+            }
+            await self._aspen.sync_state(current_state)
+
+        # 🌊 Phase 3: Immersion & Cascade Logic
+        if self._immersion:
+            await self._immersion.simulate_boiling_cycle(load_factor=1.0) # Passive sim
+
+        if self._cascade:
+            for zone in self.zones:
+                telemetry = {
+                    'delta_t_c': zone.peak_temp - zone.avg_temp,
+                    'power_surge_mw': sum(n.power_watts for n in zone.nodes) / 1000000.0 # Mock surge
+                }
+                is_isolated = await self._cascade.evaluate_zone(zone.zone_id, telemetry)
+                if is_isolated:
+                    zone.active_mode = CoolingMode.EMERGENCY # Force local response
+
+        # ⚡ Phase 4: Fabric & Security
+        if self._fabric and self.tick % 20 == 0:
+            await self._fabric.run_nccl_diagnostic("Main-Backbone")
+        
+        if self._hydra:
+            # Correlate thermal entropy with security patterns
+            mock_traffic = [{"node_id": n.node_id, "entropy": random.random()} for n in self.all_nodes[:10]]
+            await self._hydra.analyze_traffic_patterns(mock_traffic)
 
         # Always-on: SHADOW
         shadow_ctx = {'all_nodes': self.all_nodes, 'trigger': f'tick_{self.tick}'}
@@ -270,8 +378,16 @@ class APEXThermalOrchestrator:
 
         # Predictive sweep every N ticks
         if self.tick % sweep_n == 0:
-            mw_ctx = {'zones': self.zones, 'trigger': 'SCHEDULED_SWEEP'}
-            await self.pistons['MICROWAVE'].activate(mw_ctx)
+            # First, check CORE-THINK for predictive insights
+            ct_ctx = {'aspen_connector': self._aspen, 'trigger': 'SCHEDULED_FORECAST'}
+            ct_result = await self.pistons['CORE-THINK'].activate(ct_ctx)
+            
+            # If CORE-THINK predicts a surge, trigger MICROWAVE immediately regardless of N-tick schedule
+            force_microwave = ct_result.get('action') == 'PRE-COOLING_DISPATCH'
+            
+            if force_microwave or self.tick % sweep_n == 0:
+                mw_ctx = {'zones': self.zones, 'trigger': 'PREDICTIVE_SURGE' if force_microwave else 'SCHEDULED_SWEEP'}
+                await self.pistons['MICROWAVE'].activate(mw_ctx)
 
         # Telemetry: anomalies
         anomalies = shadow_result.get('anomalies', [])

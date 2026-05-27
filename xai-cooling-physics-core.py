@@ -176,9 +176,32 @@ class ColossalThermalCore:
         In production, sensor_endpoint points to sensors/telemetry_stream.py.
         Falls back to physics simulation when no endpoint is live.
         """
-        if sensor_endpoint:
-            # TODO: wire to sensors/telemetry_stream.py async generator
-            raise NotImplementedError("Live sensor feed: wire sensors/telemetry_stream.py here.")
+        if sensor_endpoint == "sensors/telemetry_stream.py":
+            from sensors.telemetry_stream import TelemetryStreamGenerator
+            generator = TelemetryStreamGenerator(rack_count=self.rack_count, gpus_per_rack=self.gpus_per_rack)
+            
+            # Consume one batch from the stream
+            async for batch in generator.stream(interval_ms=10):
+                # Calculate average metrics from the batch
+                avg_temp = sum(p.gpu_temp_c for p in batch) / len(batch)
+                avg_load = sum(p.gpu_load_pct for p in batch) / (len(batch) * 100.0)
+                avg_power = sum(p.power_draw_w for p in batch) / 1000.0 # kW
+                avg_flow = sum(p.coolant_flow_lpm for p in batch) / len(batch)
+
+                efficiency = max(0.0, 1.0 - (avg_temp / self.GPU_HARD_LIMIT_C))
+                throttle_risk = avg_temp >= self.GPU_THROTTLE_ONSET_C
+                
+                return {
+                    "source": "live_telemetry_stream",
+                    "total_power_mw": round(avg_power * self.rack_count / 1000.0, 4),
+                    "avg_temp_c": round(avg_temp, 2),
+                    "avg_load_pct": round(avg_load * 100, 1),
+                    "avg_flow_lpm": round(avg_flow, 2),
+                    "thermal_efficiency_index": round(efficiency, 4),
+                    "throttle_risk": throttle_risk,
+                    "status": "NOMINAL" if not throttle_risk else "THROTTLE_RISK"
+                }
+        
         # Fallback: return physics simulation at nominal flow
         nominal_flow = self.calculate_coolant_flow_rate(delta_t_c=15.0)
         return self.simulate_thermal_state(nominal_flow)
