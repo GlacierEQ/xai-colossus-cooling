@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+.env.*
+!.env.example
+*.egg-info/
+dist/
+build/
+.DS_Store
+Thumbs.db
+GLOBAL_SYNC_STAMP.json
+*.log
+.vercel
+.next/
+node_modules/
