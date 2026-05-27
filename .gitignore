@@ -1,17 +1,35 @@
+# Python
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-.env
-.env.*
-!.env.example
+*.pyo
+*.pyd
+.Python
 *.egg-info/
 dist/
 build/
+
+# Sync artifacts
+GLOBAL_SYNC_STAMP.json
+*.sync.json
+*.stamp.json
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
 .DS_Store
 Thumbs.db
-GLOBAL_SYNC_STAMP.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Logs
 *.log
-.vercel
-.next/
-node_modules/
+audit_logs/*.log
+
+# Shadow (internal)
+.shadow/

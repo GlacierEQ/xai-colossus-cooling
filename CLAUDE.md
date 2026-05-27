@@ -1,4 +1,2 @@
-# CLAUDE.md
-
-> ⚠️ This file has moved.
-> Full content is in [`docs/internal/CLAUDE.md`](docs/internal/CLAUDE.md) — accessible to collaborators only.
+> **Internal file moved.** See `docs/internal/CLAUDE.md` — requires collaborator access.
+> This file contains AI assistant configuration for this repository.

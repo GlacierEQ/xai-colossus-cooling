@@ -1,4 +1,1 @@
-# PRO_CEO_COMPLETION.md
-
-> ⚠️ This file has moved.
-> Full content is in [`docs/internal/PRO_CEO_COMPLETION.md`](docs/internal/PRO_CEO_COMPLETION.md) — accessible to collaborators only.
+> **Internal milestone file moved.** See `docs/internal/PRO_CEO_COMPLETION.md` — requires collaborator access.
