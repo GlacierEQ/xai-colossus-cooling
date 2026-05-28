@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CircuitFluidState",
+  "description": "Cooling-side view of nanosphere fluid state per circuit. Produced by connectors/nanosphere_ingest.py. Keys must align with CIRCUIT_TO_ZONE map.",
+  "type": "object",
+  "required": [
+    "circuit_id",
+    "zone_id",
+    "nanoparticle",
+    "effective_conductivity_w_mk",
+    "degradation_pct",
+    "status",
+    "replacement_due",
+    "ingested_at"
+  ],
+  "properties": {
+    "circuit_id": {
+      "type": "string",
+      "description": "Must match a key in CIRCUIT_TO_ZONE in nanosphere_ingest.py",
+      "examples": ["CIRCUIT-01", "CIRCUIT-02"]
+    },
+    "zone_id": {
+      "type": "string",
+      "enum": ["ZONE-A", "ZONE-B", "ZONE-C", "ZONE-D"],
+      "description": "Derived from CIRCUIT_TO_ZONE map — must match zone_id in power_state.json"
+    },
+    "nanoparticle": {
+      "type": "string",
+      "enum": ["Al2O3", "TiO2", "CuO", "graphene", "SiC", "ZnO", "Fe3O4"]
+    },
+    "volume_fraction_pct": { "type": "number", "minimum": 0, "maximum": 10 },
+    "effective_conductivity_w_mk": { "type": "number" },
+    "degradation_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+    "status": {
+      "type": "string",
+      "enum": ["active", "degraded", "replacement_due", "retired"]
+    },
+    "replacement_due": { "type": "boolean" },
+    "ingested_at": { "type": "string", "format": "date-time" }
+  }
+}

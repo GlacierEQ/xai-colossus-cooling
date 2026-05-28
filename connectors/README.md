@@ -1,50 +1,38 @@
-# Connectors — GlacierEQ APEX Stack
+# connectors/
 
-All connectors share the same env var pattern. Set once, all connectors pick up.
+This directory owns all **inbound data translation** for `xai-colossus-cooling`.
+Each connector is a thin, stateless adapter between an upstream repo's output format
+and the internal cooling domain model. Connectors MUST NOT contain business logic —
+that lives in `apex_core/` and `simulation/`.
 
-## Environment Variables
+## Connectors
 
-```bash
-export SUPABASE_URL="https://<your-project>.supabase.co"
-export SUPABASE_SERVICE_KEY="<service-role-key>"
-export NOTION_TOKEN="<integration-token>"
-export MOTHERDUCK_TOKEN="<motherduck-token>"
-```
+| File | Upstream Source | What It Does |
+|---|---|---|
+| `nanosphere_ingest.py` | `xai-colossus-nanosphere` | Reads `circuit_manifest.json`, maps circuit IDs to zones, emits fluid replacement alerts |
+| `power_state_bridge.py` | `xai-colossus-energy` | Parses `power_state.json`, produces per-zone `ZoneThermalBudget` for orchestrator |
 
-## Connector Matrix
+## ID Alignment Rule
 
-| File | Integration | Ring | Status |
-|---|---|---|---|
-| `supabase_telemetry.py` | Supabase (GlacierEQ/mastermind) | 0 | Live |
-| `sherlock_supernova_webhook.py` | Supabase real-time listener | -3 | Live |
-| `notion_dashboard.py` | Notion workspace | 0 | Live |
-| `motherduck_analytics.py` | MotherDuck/DuckDB | 0 | Live |
-| `autocad_connector.py` | AutoCAD COM / ezdxf | 0 | Live |
+**One source of truth for circuit → zone mapping: `CIRCUIT_TO_ZONE` in `nanosphere_ingest.py`.**
 
-## AutoCAD Quick Start
+- `nanosphere_ingest.py` owns the `circuit_id → zone_id` map.
+- `power_state_bridge.py` consumes `zone_id` values — it never invents them.
+- All other connectors added in future must import from `nanosphere_ingest.CIRCUIT_TO_ZONE`.
 
-```bash
-pip install ezdxf
-python connectors/autocad_connector.py
-# Outputs: CCL-002_Underfloor_Piping_Plan.dxf
-```
+## Adding a New Connector
 
-Flip to live COM mode (Windows + licensed AutoCAD):
-```python
-from connectors.autocad_connector import mcp_action_draw_ccl002
-mcp_action_draw_ccl002({"prefer_com": True})
-```
+1. Create `connectors/your_source_bridge.py`.
+2. Implement a class with `.load_from_dict(data: dict)` as the standard entry point.
+3. Return typed dataclasses — never raw dicts — to the orchestration layer.
+4. Add an entry to this README table.
+5. Add a test in `tests/test_connectors.py`.
 
-## SHERLOCK-SUPERNOVA Quick Start
+## What Must NOT Live Here
 
-```bash
-# 1. Print schema extension SQL
-python connectors/sherlock_supernova_webhook.py --schema
+- Thermal control logic
+- PID setpoint calculations
+- Swarm agent dispatch
+- APEX manifest reads
 
-# 2. Paste SQL into GlacierEQ/mastermind Supabase SQL editor
-
-# 3. Run the live pipeline
-python connectors/sherlock_supernova_webhook.py
-```
-
-SHERLOCK is observe-only. No actuation. Physics gate is downstream.
+Those belong in `apex_core/thermal_orchestrator.py` and `mastermind-fusion/`.
