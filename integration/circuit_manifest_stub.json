@@ -1,0 +1,80 @@
+{
+  "_comment": "CI STUB — used when xai-colossus-nanosphere is not available. Replace with live export in production.",
+  "schema_version": "1.0",
+  "exported_at": "2026-05-28T00:00:00Z",
+  "source": "stub",
+  "circuits": [
+    {
+      "circuit_id": "CIRCUIT-01",
+      "nanoparticle": "Al2O3",
+      "volume_fraction_pct": 2.5,
+      "effective_conductivity_w_mk": 0.72,
+      "degradation_pct": 4.1,
+      "status": "active",
+      "replacement_due": false
+    },
+    {
+      "circuit_id": "CIRCUIT-02",
+      "nanoparticle": "Al2O3",
+      "volume_fraction_pct": 2.5,
+      "effective_conductivity_w_mk": 0.71,
+      "degradation_pct": 6.2,
+      "status": "active",
+      "replacement_due": false
+    },
+    {
+      "circuit_id": "CIRCUIT-03",
+      "nanoparticle": "TiO2",
+      "volume_fraction_pct": 3.0,
+      "effective_conductivity_w_mk": 0.75,
+      "degradation_pct": 3.0,
+      "status": "active",
+      "replacement_due": false
+    },
+    {
+      "circuit_id": "CIRCUIT-04",
+      "nanoparticle": "TiO2",
+      "volume_fraction_pct": 3.0,
+      "effective_conductivity_w_mk": 0.74,
+      "degradation_pct": 5.5,
+      "status": "active",
+      "replacement_due": false
+    },
+    {
+      "circuit_id": "CIRCUIT-05",
+      "nanoparticle": "graphene",
+      "volume_fraction_pct": 0.5,
+      "effective_conductivity_w_mk": 0.90,
+      "degradation_pct": 1.0,
+      "status": "active",
+      "replacement_due": false
+    },
+    {
+      "circuit_id": "CIRCUIT-06",
+      "nanoparticle": "graphene",
+      "volume_fraction_pct": 0.5,
+      "effective_conductivity_w_mk": 0.88,
+      "degradation_pct": 2.1,
+      "status": "active",
+      "replacement_due": false
+    },
+    {
+      "circuit_id": "CIRCUIT-07",
+      "nanoparticle": "CuO",
+      "volume_fraction_pct": 1.5,
+      "effective_conductivity_w_mk": 0.68,
+      "degradation_pct": 8.0,
+      "status": "active",
+      "replacement_due": false
+    },
+    {
+      "circuit_id": "CIRCUIT-08",
+      "nanoparticle": "CuO",
+      "volume_fraction_pct": 1.5,
+      "effective_conductivity_w_mk": 0.66,
+      "degradation_pct": 11.2,
+      "status": "active",
+      "replacement_due": false
+    }
+  ]
+}

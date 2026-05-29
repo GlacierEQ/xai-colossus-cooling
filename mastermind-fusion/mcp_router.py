@@ -23,48 +23,39 @@ import datetime
 import json
 import logging
 import uuid
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 
 logger = logging.getLogger('MCP-ROUTER')
 
 ASPEN_LOG_PATH = Path('audit_logs/aspen_mcp_events.ndjson')
 
 
-# ---------------------------------------------------------------------------
-# Schema: canonical request/response envelope (Issue #11 contract)
-# ---------------------------------------------------------------------------
-
 class RequestType(str, Enum):
-    FORECAST        = 'request_forecast'
-    ZONE_SNAPSHOT   = 'request_zone_snapshot'
-    PISTON_STATUS   = 'request_piston_status'
-    EMERGENCY       = 'emergency_broadcast'
+    FORECAST       = 'request_forecast'
+    ZONE_SNAPSHOT  = 'request_zone_snapshot'
+    PISTON_STATUS  = 'request_piston_status'
+    EMERGENCY      = 'emergency_broadcast'
 
 
 class ResponseStatus(str, Enum):
-    OK       = 'ok'
-    PARTIAL  = 'partial'
-    ERROR    = 'error'
-    EMITTED  = 'emitted'   # emergency: fan-out complete
+    OK      = 'ok'
+    PARTIAL = 'partial'
+    ERROR   = 'error'
+    EMITTED = 'emitted'
 
 
 @dataclass
 class MCPRequest:
-    """
-    Canonical MCP-to-All request envelope.
-    All swarm calls must conform to this schema before routing.
-    """
     request_type: RequestType
-    zone_id: Optional[str] = None           # None = cluster-wide
-    piston_name: Optional[str] = None       # for PISTON_STATUS requests
-    horizon_ticks: int = 12                  # for FORECAST requests
-    severity: str = 'INFO'                  # for EMERGENCY: INFO|WARN|CRITICAL
-    message: Optional[str] = None           # for EMERGENCY
+    zone_id: Optional[str] = None
+    piston_name: Optional[str] = None
+    horizon_ticks: int = 12
+    severity: str = 'INFO'
+    message: Optional[str] = None
     payload: dict = field(default_factory=dict)
-    # Auto-populated by router
     request_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     timestamp: str = field(default_factory=lambda: datetime.datetime.utcnow().isoformat())
     source_agent: str = 'unknown'
@@ -72,25 +63,16 @@ class MCPRequest:
 
 @dataclass
 class MCPResponse:
-    """
-    Canonical MCP-to-All response envelope.
-    """
     request_id: str
     request_type: str
     status: ResponseStatus
     data: dict = field(default_factory=dict)
-    agent_scores: list = field(default_factory=list)  # ranked agent responses
+    agent_scores: list = field(default_factory=list)
     timestamp: str = field(default_factory=lambda: datetime.datetime.utcnow().isoformat())
     routed_by: str = 'mcp_router'
 
 
-# ---------------------------------------------------------------------------
-# Handlers
-# ---------------------------------------------------------------------------
-
 class ThermalForecastHandler:
-    """Queries CORE-THINK piston via orchestrator and returns forecast."""
-
     def __init__(self, orchestrator=None):
         self.orchestrator = orchestrator
 
@@ -98,18 +80,15 @@ class ThermalForecastHandler:
         if not self.orchestrator:
             return {'status': 'offline', 'reason': 'orchestrator not connected'}
         aspen = getattr(self.orchestrator, '_aspen', None)
-        ct_result = await self.orchestrator.pistons['CORE-THINK'].activate({
+        return await self.orchestrator.pistons['CORE-THINK'].activate({
             'aspen_connector': aspen,
             'trigger': 'MCP_FORECAST_REQUEST',
             'zone_id': req.zone_id,
             'horizon_ticks': req.horizon_ticks,
         })
-        return ct_result
 
 
 class ZoneSnapshotHandler:
-    """Returns current thermal + fluid + budget state for a zone or all zones."""
-
     def __init__(self, orchestrator=None):
         self.orchestrator = orchestrator
 
@@ -142,8 +121,6 @@ class ZoneSnapshotHandler:
 
 
 class PistonStatusHandler:
-    """Returns active/inactive + last-known result for one or all pistons."""
-
     def __init__(self, orchestrator=None):
         self.orchestrator = orchestrator
 
@@ -156,20 +133,10 @@ class PistonStatusHandler:
             if not p:
                 return {'status': 'error', 'reason': f'Unknown piston: {req.piston_name}'}
             return {'piston': p.name, 'tier': p.tier, 'active': p.active}
-        return {
-            'pistons': [
-                {'piston': p.name, 'tier': p.tier, 'active': p.active}
-                for p in pistons.values()
-            ]
-        }
+        return {'pistons': [{'piston': p.name, 'tier': p.tier, 'active': p.active} for p in pistons.values()]}
 
 
 class EmergencyBroadcastHandler:
-    """
-    Fan-out emergency broadcast. Bypasses ranking.
-    Logs to Aspen Grove audit trail synchronously before returning.
-    """
-
     async def handle(self, req: MCPRequest) -> dict:
         event = {
             'event': 'EMERGENCY_BROADCAST',
@@ -191,36 +158,24 @@ class EmergencyBroadcastHandler:
             f.write(json.dumps(event) + '\n')
 
 
-# ---------------------------------------------------------------------------
-# Router
-# ---------------------------------------------------------------------------
-
 class MCPRouter:
-    """
-    Central MCP-to-All router.
-    Validates, dispatches, ranks (non-emergency), and logs all swarm calls.
-    """
-
     def __init__(self, orchestrator=None):
         self._orchestrator = orchestrator
         self._handlers = {
-            RequestType.FORECAST:       ThermalForecastHandler(orchestrator),
-            RequestType.ZONE_SNAPSHOT:  ZoneSnapshotHandler(orchestrator),
-            RequestType.PISTON_STATUS:  PistonStatusHandler(orchestrator),
-            RequestType.EMERGENCY:      EmergencyBroadcastHandler(),
+            RequestType.FORECAST:      ThermalForecastHandler(orchestrator),
+            RequestType.ZONE_SNAPSHOT: ZoneSnapshotHandler(orchestrator),
+            RequestType.PISTON_STATUS: PistonStatusHandler(orchestrator),
+            RequestType.EMERGENCY:     EmergencyBroadcastHandler(),
         }
 
     def attach_orchestrator(self, orchestrator):
-        """Late-bind orchestrator (useful when router is initialized before orchestrator)."""
         self._orchestrator = orchestrator
         for handler in self._handlers.values():
             if hasattr(handler, 'orchestrator'):
                 handler.orchestrator = orchestrator
 
     async def dispatch(self, req: MCPRequest) -> MCPResponse:
-        """Validate, route, rank, log. Returns canonical MCPResponse."""
         logger.info('MCP dispatch [%s] req_id=%s source=%s', req.request_type, req.request_id, req.source_agent)
-
         handler = self._handlers.get(req.request_type)
         if not handler:
             return MCPResponse(
@@ -229,7 +184,6 @@ class MCPRouter:
                 status=ResponseStatus.ERROR,
                 data={'reason': f'No handler for {req.request_type}'},
             )
-
         try:
             data = await handler.handle(req)
             status = ResponseStatus.EMITTED if req.request_type == RequestType.EMERGENCY else ResponseStatus.OK
@@ -237,20 +191,17 @@ class MCPRouter:
             logger.error('Handler error for %s: %s', req.request_type, e)
             data = {'error': str(e)}
             status = ResponseStatus.ERROR
-
         resp = MCPResponse(
             request_id=req.request_id,
             request_type=req.request_type,
             status=status,
             data=data,
         )
-
         self._log_event(req, resp)
         return resp
 
     @staticmethod
     def _log_event(req: MCPRequest, resp: MCPResponse):
-        """Append every routed call to the Aspen Grove audit trail."""
         record = {
             'timestamp': resp.timestamp,
             'request_id': req.request_id,
@@ -264,10 +215,5 @@ class MCPRouter:
             f.write(json.dumps(record) + '\n')
 
 
-# ---------------------------------------------------------------------------
-# Convenience factory
-# ---------------------------------------------------------------------------
-
 def build_router(orchestrator=None) -> MCPRouter:
-    """Build and return a ready MCPRouter bound to the given orchestrator."""
     return MCPRouter(orchestrator=orchestrator)
