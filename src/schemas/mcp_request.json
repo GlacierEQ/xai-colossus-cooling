@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MCPRequest",
+  "type": "object",
+  "properties": {
+    "jsonrpc": {
+      "type": "string",
+      "const": "2.0"
+    },
+    "method": {
+      "type": "string",
+      "minLength": 1
+    },
+    "id": {
+      "type": ["string", "integer"]
+    },
+    "params": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "arguments": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "required": ["jsonrpc", "method", "id"],
+  "additionalProperties": false
+}

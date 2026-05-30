@@ -1,0 +1,162 @@
+openapi: 3.0.3
+info:
+  title: APEX Colossus 2 MCP Gateway API
+  description: Sovereign RESTful Model Context Protocol (MCP) Router and Dispatcher API.
+  version: 2.1.0
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local Development Server
+  - url: https://api.glaciereq.internal/mcp/v1
+    description: Production Sovereign Intranet
+paths:
+  /mcp/dispatch:
+    post:
+      summary: Dispatch an MCP Request
+      description: Validates and routes an inbound JSON-RPC 2.0 Model Context Protocol request to the target tool.
+      operationId: dispatchRequest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MCPRequest'
+      responses:
+        '200':
+          description: Successful execution of the MCP tool
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MCPResponse'
+        '400':
+          description: Schema validation failure or malformed payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized access (invalid Authorization token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /mcp/tools:
+    get:
+      summary: List Available Tools
+      description: Returns a complete registry of all mounted tools across Vercel, Notion, and local file systems.
+      operationId: listTools
+      responses:
+        '200':
+          description: A registry list of all active tools
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tools:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MCPTool'
+
+components:
+  schemas:
+    MCPRequest:
+      type: object
+      required:
+        - jsonrpc
+        - method
+        - id
+      properties:
+        jsonrpc:
+          type: string
+          example: '2.0'
+          enum: ['2.0']
+        method:
+          type: string
+          example: 'tools/call'
+        id:
+          type: integer
+          example: 42
+        params:
+          type: object
+          properties:
+            name:
+              type: string
+              example: 'file_search'
+            arguments:
+              type: object
+              additionalProperties: true
+
+    MCPResponse:
+      type: object
+      required:
+        - jsonrpc
+        - id
+        - result
+      properties:
+        jsonrpc:
+          type: string
+          example: '2.0'
+        id:
+          type: integer
+          example: 42
+        result:
+          type: object
+          properties:
+            status:
+              type: string
+              example: 'SUCCESS'
+            content:
+              type: array
+              items:
+                type: object
+                properties:
+                  type:
+                    type: string
+                    example: 'text'
+                  text:
+                    type: string
+                    example: 'File found: /data/...'
+
+    MCPTool:
+      type: object
+      required:
+        - name
+        - description
+        - inputSchema
+      properties:
+        name:
+          type: string
+          example: 'vault_sync'
+        description:
+          type: string
+          example: 'Triggers local-to-cloud secure docket backups.'
+        inputSchema:
+          type: object
+          additionalProperties: true
+
+    ErrorResponse:
+      type: object
+      required:
+        - jsonrpc
+        - id
+        - error
+      properties:
+        jsonrpc:
+          type: string
+          example: '2.0'
+        id:
+          type: integer
+          example: 42
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: integer
+              example: -32600
+            message:
+              type: string
+              example: 'Invalid Request: Schema validation error'
