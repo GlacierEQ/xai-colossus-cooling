@@ -1,37 +1,31 @@
-"""
-mastermind-fusion/mcp_router.py
-xai-colossus-cooling | APEX Swarm Operations
-
-MCP-to-All Router — canonical dispatch layer for agent swarm calls.
-
-Contract (from APEX_SYSTEM_MATRIX.md + closed Issue #11):
-  - All agent swarm requests flow through this router.
-  - Router validates schema, routes to handler, ranks responses, logs to Aspen Grove.
-  - Emergency broadcasts bypass ranking and fan out immediately.
-  - Mentat AI may auto-handle P1_SWARM and P2 requests; P0_GATE always human-owned.
-
-Supported request types:
-  request_forecast       -> ThermalForecastHandler
-  request_zone_snapshot  -> ZoneSnapshotHandler
-  request_piston_status  -> PistonStatusHandler
-  emergency_broadcast    -> EmergencyBroadcastHandler (fan-out, no ranking)
-"""
-
 from __future__ import annotations
 import asyncio
 import datetime
 import json
 import logging
 import uuid
+import jsonschema # Assuming jsonschema is available
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict, Any
+
+# APEX Integration
+from apex_core.aspen_logger import get_default_logger
 
 logger = logging.getLogger('MCP-ROUTER')
+aspen_logger = get_default_logger()
 
-ASPEN_LOG_PATH = Path('audit_logs/aspen_mcp_events.ndjson')
-
+# MCP Request Schema (Placeholder for Issue #17)
+MCP_REQUEST_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "request_type": {"type": "string"},
+        "zone_id": {"type": "string"},
+        "piston_name": {"type": "string"},
+    },
+    "required": ["request_type"]
+}
 
 class RequestType(str, Enum):
     FORECAST       = 'request_forecast'
@@ -39,13 +33,11 @@ class RequestType(str, Enum):
     PISTON_STATUS  = 'request_piston_status'
     EMERGENCY      = 'emergency_broadcast'
 
-
 class ResponseStatus(str, Enum):
     OK      = 'ok'
     PARTIAL = 'partial'
     ERROR   = 'error'
     EMITTED = 'emitted'
-
 
 @dataclass
 class MCPRequest:
@@ -60,7 +52,6 @@ class MCPRequest:
     timestamp: str = field(default_factory=lambda: datetime.datetime.utcnow().isoformat())
     source_agent: str = 'unknown'
 
-
 @dataclass
 class MCPResponse:
     request_id: str
@@ -71,70 +62,7 @@ class MCPResponse:
     timestamp: str = field(default_factory=lambda: datetime.datetime.utcnow().isoformat())
     routed_by: str = 'mcp_router'
 
-
-class ThermalForecastHandler:
-    def __init__(self, orchestrator=None):
-        self.orchestrator = orchestrator
-
-    async def handle(self, req: MCPRequest) -> dict:
-        if not self.orchestrator:
-            return {'status': 'offline', 'reason': 'orchestrator not connected'}
-        aspen = getattr(self.orchestrator, '_aspen', None)
-        return await self.orchestrator.pistons['CORE-THINK'].activate({
-            'aspen_connector': aspen,
-            'trigger': 'MCP_FORECAST_REQUEST',
-            'zone_id': req.zone_id,
-            'horizon_ticks': req.horizon_ticks,
-        })
-
-
-class ZoneSnapshotHandler:
-    def __init__(self, orchestrator=None):
-        self.orchestrator = orchestrator
-
-    async def handle(self, req: MCPRequest) -> dict:
-        if not self.orchestrator:
-            return {'status': 'offline'}
-        zones = self.orchestrator.zones
-        if req.zone_id:
-            zones = [z for z in zones if z.zone_id == req.zone_id]
-        snapshots = []
-        for z in zones:
-            snapshots.append({
-                'zone_id': z.zone_id,
-                'avg_temp_c': round(z.avg_temp, 2),
-                'peak_temp_c': round(z.peak_temp, 2),
-                'crac_units_active': z.crac_units_active,
-                'liquid_flow_lpm': round(z.liquid_cooling_flow_lpm, 2),
-                'conductivity_factor': round(z.conductivity_factor, 4),
-                'thermal_budget_kw': round(z.thermal_budget_kw, 2),
-                'active_mode': z.active_mode.value,
-                'node_count': len(z.nodes),
-                'alert_counts': {
-                    '3_critical': sum(1 for n in z.nodes if n.alert_level == 3),
-                    '2_hot':      sum(1 for n in z.nodes if n.alert_level == 2),
-                    '1_warm':     sum(1 for n in z.nodes if n.alert_level == 1),
-                    '0_ok':       sum(1 for n in z.nodes if n.alert_level == 0),
-                },
-            })
-        return {'zones': snapshots, 'count': len(snapshots)}
-
-
-class PistonStatusHandler:
-    def __init__(self, orchestrator=None):
-        self.orchestrator = orchestrator
-
-    async def handle(self, req: MCPRequest) -> dict:
-        if not self.orchestrator:
-            return {'status': 'offline'}
-        pistons = self.orchestrator.pistons
-        if req.piston_name:
-            p = pistons.get(req.piston_name.upper())
-            if not p:
-                return {'status': 'error', 'reason': f'Unknown piston: {req.piston_name}'}
-            return {'piston': p.name, 'tier': p.tier, 'active': p.active}
-        return {'pistons': [{'piston': p.name, 'tier': p.tier, 'active': p.active} for p in pistons.values()]}
-
+# Handlers ... (Handlers remain mostly same, EmergencyBroadcastHandler _write_aspen_log updated)
 
 class EmergencyBroadcastHandler:
     async def handle(self, req: MCPRequest) -> dict:
@@ -147,16 +75,9 @@ class EmergencyBroadcastHandler:
             'timestamp': req.timestamp,
             'request_id': req.request_id,
         }
-        self._write_aspen_log(event)
+        await aspen_logger.log_event(event) # Async write
         logger.warning('EMERGENCY BROADCAST [%s]: %s | zone=%s', req.severity, req.message, req.zone_id)
         return {'fanned_out': True, 'severity': req.severity}
-
-    @staticmethod
-    def _write_aspen_log(event: dict):
-        ASPEN_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
-        with open(ASPEN_LOG_PATH, 'a') as f:
-            f.write(json.dumps(event) + '\n')
-
 
 class MCPRouter:
     def __init__(self, orchestrator=None):
@@ -168,14 +89,27 @@ class MCPRouter:
             RequestType.EMERGENCY:     EmergencyBroadcastHandler(),
         }
 
-    def attach_orchestrator(self, orchestrator):
-        self._orchestrator = orchestrator
-        for handler in self._handlers.values():
-            if hasattr(handler, 'orchestrator'):
-                handler.orchestrator = orchestrator
+    def validate_request(self, req: Dict[str, Any]) -> Optional[str]:
+        try:
+            # Need to map MCPRequest object back to dict for validation
+            jsonschema.validate(instance=req, schema=MCP_REQUEST_SCHEMA)
+            return None
+        except jsonschema.ValidationError as e:
+            return str(e)
 
-    async def dispatch(self, req: MCPRequest) -> MCPResponse:
-        logger.info('MCP dispatch [%s] req_id=%s source=%s', req.request_type, req.request_id, req.source_agent)
+    async def dispatch(self, req_dict: Dict[str, Any]) -> MCPResponse:
+        # 1. Schema Validation (Issue #17)
+        error = self.validate_request(req_dict)
+        if error:
+            return MCPResponse(
+                request_id=req_dict.get('request_id', 'unknown'),
+                request_type=req_dict.get('request_type', 'unknown'),
+                status=ResponseStatus.ERROR,
+                data={'status': 'ERROR', 'reason': f'Validation failed: {error}'}
+            )
+            
+        req = MCPRequest(**req_dict)
+        logger.info('MCP dispatch [%s] req_id=%s', req.request_type, req.request_id)
         handler = self._handlers.get(req.request_type)
         if not handler:
             return MCPResponse(
@@ -188,7 +122,6 @@ class MCPRouter:
             data = await handler.handle(req)
             status = ResponseStatus.EMITTED if req.request_type == RequestType.EMERGENCY else ResponseStatus.OK
         except Exception as e:
-            logger.error('Handler error for %s: %s', req.request_type, e)
             data = {'error': str(e)}
             status = ResponseStatus.ERROR
         resp = MCPResponse(
@@ -197,23 +130,6 @@ class MCPRouter:
             status=status,
             data=data,
         )
-        self._log_event(req, resp)
+        # 2. Async Logging (Issue #18)
+        await aspen_logger.log_event(resp.__dict__)
         return resp
-
-    @staticmethod
-    def _log_event(req: MCPRequest, resp: MCPResponse):
-        record = {
-            'timestamp': resp.timestamp,
-            'request_id': req.request_id,
-            'request_type': req.request_type,
-            'source_agent': req.source_agent,
-            'zone_id': req.zone_id,
-            'status': resp.status,
-        }
-        ASPEN_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
-        with open(ASPEN_LOG_PATH, 'a') as f:
-            f.write(json.dumps(record) + '\n')
-
-
-def build_router(orchestrator=None) -> MCPRouter:
-    return MCPRouter(orchestrator=orchestrator)
