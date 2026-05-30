@@ -123,5 +123,73 @@ class TestMCPRequestValidator(unittest.TestCase):
         is_valid, msg = self.validator.validate(invalid_type_payload)
         self.assertFalse(is_valid)
 
+class TestMCPRouterIntegration(unittest.IsolatedAsyncioTestCase):
+    async def test_mcp_router_tick_dispatch(self):
+        """Verify MCP requests are queued, validated, and executed during tick cycles."""
+        from apex_core.thermal_orchestrator import APEXThermalOrchestrator, CoolingZone, ThermalNode
+        
+        # 1. Initialize orchestrator and clean existing log
+        orch = APEXThermalOrchestrator()
+        if os.path.exists(orch.aspen_logger.log_path):
+            os.remove(orch.aspen_logger.log_path)
+            
+        # Register a synthetic zone with warm nodes
+        zone = CoolingZone(zone_id="ZONE-T1", zone_name="Test Zone")
+        node = ThermalNode(
+            node_id="NODE-001", rack_id="RACK-001", zone_id="ZONE-T1",
+            temp_celsius=75.0, gpu_utilization=0.8, power_watts=700
+        )
+        zone.nodes.append(node)
+        orch.register_zone(zone)
+        
+        # 2. Queue a valid tool request
+        valid_request = {
+            "jsonrpc": "2.0",
+            "method": "tools/call",
+            "id": 999,
+            "params": {
+                "name": "emergency_blast",
+                "arguments": {}
+            }
+        }
+        orch._mcp_router.queue_request(valid_request)
+        
+        # 3. Queue an invalid request (to verify rejection)
+        invalid_request = {
+            "jsonrpc": "1.0",
+            "method": "tools/call",
+            "id": 888
+        }
+        orch._mcp_router.queue_request(invalid_request)
+        
+        # 4. Trigger one tick cycle
+        tick_result = await orch.tick_cycle()
+        
+        # 5. Verify results
+        self.assertEqual(tick_result["tick"], 1)
+        
+        # Verify the logger successfully wrote the audit events asynchronously
+        await orch.aspen_logger.shutdown()
+        
+        log_path = orch.aspen_logger.log_path
+        self.assertTrue(os.path.exists(log_path))
+        with open(log_path, "r") as f:
+            lines = f.readlines()
+            events = [json.loads(line) for line in lines]
+            mcp_events = [e for e in events if e.get("event") == "MCP_DISPATCH"]
+            
+            self.assertEqual(len(mcp_events), 2)
+            
+            # First request (999) must be EXECUTED
+            req_999 = next(e for e in mcp_events if e["request_id"] == 999)
+            self.assertEqual(req_999["status"], "EXECUTED")
+            self.assertEqual(req_999["method"], "tools/call")
+            
+            # Second request (888) must be REJECTED
+            req_888 = next(e for e in mcp_events if e["request_id"] == 888)
+            self.assertEqual(req_888["status"], "REJECTED")
+            self.assertIsNotNone(req_888["error_message"])
+
 if __name__ == "__main__":
     unittest.main()
+

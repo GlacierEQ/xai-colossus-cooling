@@ -1,1 +1,3 @@
 .SYNCED_CHUNK_VERIFIED*
+__pycache__/
+*.pyc

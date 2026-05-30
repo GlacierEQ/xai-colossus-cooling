@@ -315,11 +315,19 @@ class APEXThermalOrchestrator:
             for fm in self.manifest.get('fusion_modes', [])
         }
 
+        # Wire MCP Router & Aspen Grove Logger
+        from memory.aspen_grove_logger import AspenGroveLogger
+        from connectors.mcp_router import MCPRouterConnector
+        self.aspen_logger = AspenGroveLogger()
+        self.aspen_logger.start()
+        self._mcp_router = MCPRouterConnector(logger=self.aspen_logger)
+
         self._telemetry = None
         self._aspen = None
         self._nanosphere = None   # v1.2
         self._power_bridge = None # v1.2
         self._init_connectors()
+
 
         self._immersion = None
         self._cascade   = None
@@ -529,8 +537,13 @@ class APEXThermalOrchestrator:
             mock_traffic = [{'node_id': n.node_id, 'entropy': random.random()} for n in self.all_nodes[:10]]
             await self._hydra.analyze_traffic_patterns(mock_traffic)
 
+        # Process MCP Router tick loop
+        if self._mcp_router:
+            await self._mcp_router.process_tick(self)
+
         # Always-on SHADOW
         shadow_result = await self.pistons['SHADOW'].activate({'all_nodes': self.all_nodes, 'trigger': f'tick_{self.tick}'})
+
 
         # Always-on GHOST
         await self.pistons['GHOST'].activate({'zones': self.zones, 'trigger': f'tick_{self.tick}'})

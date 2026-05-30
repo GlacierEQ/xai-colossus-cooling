@@ -66,14 +66,8 @@ class AspenGroveLogger:
         start_time = time.perf_counter()
         event["timestamp"] = event.get("timestamp") or time.time()
         
-        # Get or create current event loop
-        try:
-            loop = asyncio.get_running_loop()
-            loop.create_task(self.queue.put(event))
-        except RuntimeError:
-            # Fallback if no loop is running (starts a temporary one or inserts synchronously)
-            loop = asyncio.new_event_loop()
-            loop.run_until_complete(self.queue.put(event))
+        # Insert into queue immediately and synchronously
+        self.queue.put_nowait(event)
             
         overhead_ms = (time.perf_counter() - start_time) * 1000.0
         return overhead_ms
