@@ -1,0 +1,28 @@
+name: Phase Gate Check
+
+on:
+  issues:
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      gate_issue_number:
+        description: 'Issue number to validate as gate'
+        required: false
+
+jobs:
+  verify-gate-checklist:
+    name: Verify P0_GATE checklist complete
+    runs-on: ubuntu-latest
+    if: contains(github.event.issue.labels.*.name, 'P0_GATE')
+    steps:
+      - name: Check all boxes ticked
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.issue.body || '';
+            const unchecked = (body.match(/- \[ \]/g) || []).length;
+            if (unchecked > 0) {
+              core.setFailed(`Gate issue closed with ${unchecked} unchecked item(s). Gate cannot close until all criteria are met.`);
+            } else {
+              console.log('All gate checklist items confirmed checked.');
+            }

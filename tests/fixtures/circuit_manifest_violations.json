@@ -1,0 +1,40 @@
+{
+  "schema_version": "1.0.0",
+  "generated_at": "2026-05-28T00:00:00Z",
+  "facility": "xai-colossus-2-memphis",
+  "_comment": "VIOLATION FIXTURE — for negative tests only. Do NOT use as real manifest.",
+  "circuits": [
+    {
+      "batch_id": "BATCH-2025-009",
+      "circuit_id": "CIRCUIT-C1",
+      "nanoparticle": "CuO",
+      "volume_fraction_pct": 0.2,
+      "effective_conductivity_w_mk": 0.7120,
+      "degradation_pct": 14.8,
+      "status": "active",
+      "replacement_due": false
+    },
+    {
+      "batch_id": "BATCH-2025-008",
+      "circuit_id": "CIRCUIT-C2",
+      "nanoparticle": "CuO",
+      "volume_fraction_pct": 0.2,
+      "effective_conductivity_w_mk": 0.5890,
+      "degradation_pct": 18.3,
+      "status": "active",
+      "replacement_due": true,
+      "_violation": "replacement_due=true AND degradation > 15%"
+    },
+    {
+      "batch_id": "BATCH-2026-003",
+      "circuit_id": "CIRCUIT-D1",
+      "nanoparticle": "SiO2",
+      "volume_fraction_pct": 0.4,
+      "effective_conductivity_w_mk": -0.0001,
+      "degradation_pct": 0.5,
+      "status": "maintenance",
+      "replacement_due": false,
+      "_violation": "status=maintenance AND conductivity non-positive"
+    }
+  ]
+}

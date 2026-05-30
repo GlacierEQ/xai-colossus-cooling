@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MCPRequest",
+  "description": "Canonical MCP-to-All swarm request envelope (Issue #11 contract). All agent swarm calls must conform to this schema.",
+  "type": "object",
+  "required": ["request_type", "request_id", "timestamp", "source_agent"],
+  "properties": {
+    "request_id": { "type": "string", "format": "uuid" },
+    "request_type": {
+      "type": "string",
+      "enum": ["request_forecast", "request_zone_snapshot", "request_piston_status", "emergency_broadcast"]
+    },
+    "source_agent": { "type": "string", "description": "Identifying name/ID of the requesting agent" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "zone_id": {
+      "type": ["string", "null"],
+      "enum": ["ZONE-A", "ZONE-B", "ZONE-C", "ZONE-D", null],
+      "description": "null means cluster-wide"
+    },
+    "piston_name": {
+      "type": ["string", "null"],
+      "enum": ["MICROWAVE", "SUPERNOVA", "SHADOW", "GHOST", "CORE-THINK", null]
+    },
+    "horizon_ticks": { "type": "integer", "minimum": 1, "maximum": 120, "default": 12 },
+    "severity": {
+      "type": "string",
+      "enum": ["INFO", "WARN", "CRITICAL"],
+      "description": "Required for emergency_broadcast"
+    },
+    "message": { "type": ["string", "null"] },
+    "payload": { "type": "object" }
+  },
+  "if": { "properties": { "request_type": { "const": "emergency_broadcast" } } },
+  "then": { "required": ["severity", "message"] }
+}

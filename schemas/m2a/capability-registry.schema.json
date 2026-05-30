@@ -1,0 +1,157 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/GlacierEQ/xai-colossus-cooling/schemas/m2a/capability-registry.schema.json",
+  "title": "M2A Node Capability Registry Entry",
+  "description": "Registration contract for any node (agent, MCP server, runtime, specialist) that wants to receive M2A broadcasts. Each node self-registers on startup; middleware uses this to evaluate broadcast eligibility and suppress irrelevant responders.",
+  "type": "object",
+  "required": ["node_id", "node_type", "pillar", "capabilities", "domains", "latency_class", "registered_at"],
+  "properties": {
+    "node_id": {
+      "type": "string",
+      "description": "Globally unique node identifier (recommended: kebab-case, e.g. 'telemetry-zone-01')"
+    },
+    "node_type": {
+      "type": "string",
+      "enum": ["orchestrator", "mcp_server", "specialist_agent", "runtime", "audit", "telemetry", "analytics", "memory", "dashboard"],
+      "description": "Structural type of the node in the swarm fabric"
+    },
+    "pillar": {
+      "type": "string",
+      "enum": ["runtime", "analytics", "memory", "document", "telemetry", "audit"],
+      "description": "Pillar membership — determines which pillar-scoped broadcasts this node receives"
+    },
+    "capabilities": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" },
+      "description": "List of capability tokens this node can satisfy. Middleware matches these against request_filter.required_capabilities.",
+      "examples": [
+        ["zone_telemetry", "thermal_snapshot"],
+        ["forecast", "demand_prediction", "weather_integration"],
+        ["audit_log", "aspen_grove_write"],
+        ["document_export", "pdf_render"],
+        ["emergency_response", "scram_handler"]
+      ]
+    },
+    "domains": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" },
+      "description": "Semantic domains this node operates in. Used for domain-match routing.",
+      "examples": [
+        ["cooling", "thermal", "zone-management"],
+        ["power", "pdu", "ups"],
+        ["network", "infiniband", "fabric"],
+        ["legal", "audit", "compliance"]
+      ]
+    },
+    "latency_class": {
+      "type": "string",
+      "enum": ["realtime", "near_realtime", "batch"],
+      "description": "Node's self-declared response latency class. Middleware uses this to filter realtime broadcasts."
+    },
+    "priority": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "default": 50,
+      "description": "Static priority weight (1=lowest, 100=highest). Used as tiebreaker in rank scoring."
+    },
+    "max_concurrent_requests": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 10,
+      "description": "Maximum simultaneous M2A requests this node can handle. Middleware backs off when exceeded."
+    },
+    "health": {
+      "type": "object",
+      "description": "Live health state, updated by the node on heartbeat (every 30s)",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["healthy", "degraded", "unavailable"],
+          "default": "healthy"
+        },
+        "last_heartbeat": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "load_pct": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Current load percentage. Middleware reduces routing weight above 80%."
+        }
+      }
+    },
+    "registered_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC timestamp of initial registration"
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version of this node's capability contract (semver)"
+    },
+    "endpoint": {
+      "type": "object",
+      "description": "Optional network endpoint for direct reply routing",
+      "properties": {
+        "protocol": {
+          "type": "string",
+          "enum": ["mcp", "grpc", "websocket", "http", "kafka"]
+        },
+        "address": { "type": "string" },
+        "port": { "type": "integer" }
+      }
+    },
+    "cooling_metadata": {
+      "type": "object",
+      "description": "Optional cooling-system-specific metadata for xAI Colossus thermal nodes",
+      "properties": {
+        "zone_ids": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Thermal zones this node has authority over (e.g. ['zone-01', 'zone-02'])"
+        },
+        "thermal_load_mw": {
+          "type": "number",
+          "description": "Thermal load (MW) this node monitors. Reference: 48 zones x 25 MW = 1,200 MW total."
+        },
+        "sensor_count": {
+          "type": "integer",
+          "description": "Number of physical sensors feeding this node (feeds digital twin 3,400+ sensor count)"
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "node_id": "telemetry-zone-cluster-01",
+      "node_type": "telemetry",
+      "pillar": "telemetry",
+      "capabilities": ["zone_telemetry", "thermal_snapshot", "sensor_aggregation"],
+      "domains": ["cooling", "thermal", "zone-management"],
+      "latency_class": "realtime",
+      "priority": 90,
+      "max_concurrent_requests": 50,
+      "health": {
+        "status": "healthy",
+        "last_heartbeat": "2026-05-21T21:07:30Z",
+        "load_pct": 34.2
+      },
+      "registered_at": "2026-05-21T00:00:00Z",
+      "version": "1.0.0",
+      "endpoint": {
+        "protocol": "kafka",
+        "address": "kafka-broker-01.colossus.internal",
+        "port": 9092
+      },
+      "cooling_metadata": {
+        "zone_ids": ["zone-01", "zone-02", "zone-03", "zone-04"],
+        "thermal_load_mw": 100,
+        "sensor_count": 283
+      }
+    }
+  ]
+}

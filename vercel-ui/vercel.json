@@ -1,0 +1,16 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "cd vercel-ui && npm run build",
+  "outputDirectory": "vercel-ui/.next",
+  "installCommand": "cd vercel-ui && npm install",
+  "regions": ["sfo1", "iad1"],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store" },
+        { "key": "X-APEX-Stack", "value": "GlacierEQ-Sovereign" }
+      ]
+    }
+  ]
+}

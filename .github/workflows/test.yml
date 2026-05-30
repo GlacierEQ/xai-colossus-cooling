@@ -1,0 +1,74 @@
+name: APEX CI -- Test Suite
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Run APEX Test Suite
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+      MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install ezdxf matplotlib scikit-learn numpy pandas pytest
+
+      - name: Lint (ruff)
+        run: |
+          pip install ruff
+          ruff check . --ignore E501
+        continue-on-error: true
+
+      - name: APEX status check
+        run: python apex_cli.py status
+
+      - name: Run tests
+        run: |
+          pytest tests/ -v --tb=short
+        continue-on-error: true
+
+      - name: Generate all blueprint formats
+        run: |
+          python apex_cli.py blueprint --all --output /tmp/CCL-002-test
+
+      - name: Verify outputs exist
+        run: |
+          python -c "
+          import os
+          for ext in ['dxf', 'pdf', 'png']:
+              path = f'/tmp/CCL-002-test.{ext}'
+              size = os.path.getsize(path) if os.path.exists(path) else 0
+              status = 'OK' if size > 0 else 'MISSING'
+              print(f'[{ext.upper()}] {path} ({size} bytes) -- {status}')
+              assert size > 0, f'{ext} output missing or empty'
+          print('All blueprint formats validated.')
+          "
+
+      - name: Upload blueprint artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: APEX-blueprints-CCL-002
+          path: |
+            /tmp/CCL-002-test.dxf
+            /tmp/CCL-002-test.pdf
+            /tmp/CCL-002-test.png
+          retention-days: 30

@@ -1,0 +1,84 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://xai-colossus.glaciereq.io/schemas/m2a/responder_registry.json",
+  "title": "M2A Responder Registry Entry",
+  "description": "Registry entry for each agent/node participating in the MCP-to-All fabric. Middleware uses this to route, filter, and rank broadcast targets.",
+  "type": "object",
+  "required": ["node_id", "node_type", "capabilities", "domains", "pillar", "priority_class"],
+  "additionalProperties": false,
+  "properties": {
+    "node_id":    { "type": "string", "description": "Globally unique identifier for this agent/node." },
+    "node_type":  { "type": "string", "enum": ["orchestrator", "specialist", "sensor", "memory", "audit", "dashboard", "mcp_server"] },
+    "capabilities": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Capability tokens matched against intent routing table.",
+      "examples": [["forecast", "zone_snapshot", "anomaly_detection"]]
+    },
+    "domains": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["thermal", "fluid", "power", "security", "audit", "orchestration"] }
+    },
+    "pillar": {
+      "type": "string",
+      "enum": ["runtime", "analytics", "memory", "telemetry", "orchestrator"]
+    },
+    "priority_class": {
+      "type": "string",
+      "enum": ["high", "medium", "low"],
+      "description": "Used by middleware ranker when confidence scores tie."
+    },
+    "latency_class": {
+      "type": "string",
+      "enum": ["realtime", "fast", "standard", "batch"],
+      "description": "realtime = <50ms | fast = <500ms | standard = <2s | batch = >2s"
+    },
+    "cost_class": {
+      "type": "string",
+      "enum": ["free", "low", "medium", "high"],
+      "description": "Token/compute cost to invoke this responder."
+    },
+    "active": { "type": "boolean", "default": true },
+    "registered_at":  { "type": "string", "format": "date-time" },
+    "last_seen_at":   { "type": "string", "format": "date-time" },
+    "aspen_grove_id": { "type": "string", "description": "Aspen Grove v7 agent identifier for audit trail cross-reference." }
+  },
+  "examples": [
+    {
+      "node_id":       "thermal-physics-agent-001",
+      "node_type":     "specialist",
+      "capabilities":  ["forecast", "zone_snapshot", "piston_status"],
+      "domains":       ["thermal", "fluid"],
+      "pillar":        "analytics",
+      "priority_class": "high",
+      "latency_class": "fast",
+      "cost_class":    "low",
+      "active":        true,
+      "registered_at": "2026-04-29T00:00:00Z"
+    },
+    {
+      "node_id":       "supernova-emergency-agent",
+      "node_type":     "orchestrator",
+      "capabilities":  ["emergency_coordination", "piston_status"],
+      "domains":       ["thermal", "orchestration"],
+      "pillar":        "runtime",
+      "priority_class": "high",
+      "latency_class": "realtime",
+      "cost_class":    "medium",
+      "active":        true,
+      "registered_at": "2026-04-29T00:00:00Z"
+    },
+    {
+      "node_id":       "aspen-grove-audit-node",
+      "node_type":     "memory",
+      "capabilities":  ["audit", "request_forecast"],
+      "domains":       ["audit"],
+      "pillar":        "memory",
+      "priority_class": "medium",
+      "latency_class": "fast",
+      "cost_class":    "low",
+      "active":        true,
+      "registered_at": "2026-04-29T00:00:00Z"
+    }
+  ]
+}

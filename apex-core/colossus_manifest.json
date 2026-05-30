@@ -1,0 +1,86 @@
+{
+  "system": "xAI Colossus Cooling — APEX Thermal Intelligence",
+  "version": "1.2.0-COLOSSUS",
+  "codename": "GLACIER-THERMAL",
+  "architect": "Casey Barton | GlacierEQ",
+  "stack": "GlacierEQ Sovereign APEX Architecture",
+  "scale": "100,000+ GPU nodes",
+  "target_pue": 1.15,
+  "emergency_response_ms": 50,
+  "predictive_response_ms": 500,
+  "uptime_sla": "99.999%",
+  "cooling_modes": [
+    "STEADY_STATE",
+    "PREDICTIVE_SURGE",
+    "EMERGENCY_BLAST",
+    "GHOST_OPS",
+    "COLOSSUS"
+  ],
+  "thermal_thresholds": {
+    "normal_max_c": 70,
+    "warm_c": 70,
+    "hot_c": 78,
+    "critical_c": 85,
+    "gpu_throttle_c": 90,
+    "zone_crac_boost_c": 75,
+    "zone_liquid_boost_c": 80,
+    "shadow_anomaly_delta_c": 8,
+    "shadow_ema_alpha": 0.05,
+    "inlet_intervention_c": 27,
+    "exhaust_intervention_c": 40,
+    "power_intervention_pct": 0.90,
+    "cascade_limits": {
+      "delta_t_max_c": 15,
+      "power_surge_mw_threshold": 0.85
+    }
+  },
+  "tick_config": {
+    "tick_interval_ms": 500,
+    "microwave_sweep_every_n_ticks": 5,
+    "telemetry_log_every_n_ticks": 1,
+    "connector_refresh_every_n_ticks": 10,
+    "fabric_diagnostic_every_n_ticks": 20,
+    "max_crac_units": 8,
+    "liquid_boost_lpm": 10.0
+  },
+  "active_pistons": [
+    {"name": "MICROWAVE",   "tier": "APEX",  "role": "Parallel hyperspeed thermal sweeps",       "ops_per_tick": 12, "status": "ACTIVE"},
+    {"name": "SUPERNOVA",   "tier": "APEX",  "role": "Maximum force emergency cascade",           "ops_per_tick": 1,  "status": "ACTIVE"},
+    {"name": "CORE-THINK",  "tier": "APEX",  "role": "Deep thermal reasoning + prediction",        "ops_per_tick": 1,  "status": "ACTIVE"},
+    {"name": "BODYBUILDER", "tier": "APEX",  "role": "Heavy lift: full-cluster rebalancing",       "ops_per_tick": 1,  "status": "PENDING"},
+    {"name": "SHERLOCK",    "tier": "BLACK", "role": "Forensic anomaly intelligence",              "ops_per_tick": 1,  "status": "PENDING"},
+    {"name": "SONIC",       "tier": "BLACK", "role": "Sub-50ms emergency trigger",                "ops_per_tick": 1,  "status": "PENDING"},
+    {"name": "GHOST",       "tier": "BLACK", "role": "Zero-trace background optimization",         "ops_per_tick": 1,  "status": "ACTIVE"},
+    {"name": "PHANTOM",     "tier": "BLACK", "role": "Background persistence layer",              "ops_per_tick": 1,  "status": "PENDING"},
+    {"name": "VIPER",       "tier": "GREY",  "role": "Precision strike cooling",                  "ops_per_tick": 1,  "status": "PENDING"},
+    {"name": "WRAITH",      "tier": "GREY",  "role": "Memory-efficient thermal tracking",          "ops_per_tick": 1,  "status": "PENDING"},
+    {"name": "SPECTER",     "tier": "GREY",  "role": "Async thermal event handling",               "ops_per_tick": 1,  "status": "PENDING"},
+    {"name": "SHADOW",      "tier": "GREY",  "role": "Silent monitoring — 99.4% efficiency",      "ops_per_tick": 1,  "status": "ACTIVE"}
+  ],
+  "fusion_modes": [
+    {"name": "SHERLOCK-SUPERNOVA",   "role": "Anomaly hunting under thermal pressure",    "requires": ["SHERLOCK", "SUPERNOVA"],   "status": "PENDING"},
+    {"name": "GHOST-MICROWAVE",      "role": "Invisible parallel execution",              "requires": ["GHOST", "MICROWAVE"],      "status": "ACTIVE"},
+    {"name": "PHANTOM-SHADOW",       "role": "MORPHEUS: silent behavioral evolution",     "requires": ["PHANTOM", "SHADOW"],      "status": "PENDING"},
+    {"name": "SONIC-BODYBUILDER",    "role": "Massive dataset thermal processing",        "requires": ["SONIC", "BODYBUILDER"],   "status": "PENDING"},
+    {"name": "CORE-THINK-AMPLIFIED", "role": "Predictive modeling at 99.97% accuracy",   "requires": ["CORE-THINK"],             "status": "ACTIVE"}
+  ],
+  "connectors": {
+    "github":            "CI/CD pipeline — auto-deploy cooling config updates",
+    "notion":            "Live ops dashboard — real-time rack thermal telemetry",
+    "vercel":            "Edge monitoring UI — global cooling status interface",
+    "supabase":          "Telemetry persistence — time-series thermal data",
+    "motherduck":        "Analytics engine — DuckDB thermal trend analysis",
+    "aspen_grove":       "APEX agent orchestration backbone",
+    "nanosphere":        "Nanofluid circuit manifest — conductivity factor ingest",
+    "power_state_bridge":"Energy repo zone budgets — thermal draw + PUE ingest"
+  },
+  "nanosphere": {
+    "baseline_conductivity_w_mk": 0.613,
+    "degradation_alert_pct": 15,
+    "manifest_path": "integration/circuit_manifest.json",
+    "alert_log_path": "audit_logs/fluid_replacement_alerts.ndjson"
+  },
+  "source_architecture": "GlacierEQ/colossal-agent + GlacierEQ/mastermind",
+  "ring_level": "-3",
+  "status": "ACTIVE_COLOSSUS_FUSION"
+}

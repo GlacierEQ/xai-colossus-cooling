@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MCPResponse",
+  "description": "Canonical MCP-to-All swarm response envelope. All handlers must return data that populates this schema.",
+  "type": "object",
+  "required": ["request_id", "request_type", "status", "timestamp", "routed_by"],
+  "properties": {
+    "request_id": { "type": "string", "format": "uuid" },
+    "request_type": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["ok", "partial", "error", "emitted"]
+    },
+    "data": { "type": "object", "description": "Handler-specific response payload" },
+    "agent_scores": {
+      "type": "array",
+      "description": "Ranked agent response list for multi-agent queries (non-emergency)",
+      "items": {
+        "type": "object",
+        "required": ["agent_id", "score", "response"],
+        "properties": {
+          "agent_id": { "type": "string" },
+          "score": { "type": "number", "minimum": 0, "maximum": 1 },
+          "response": { "type": "object" }
+        }
+      }
+    },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "routed_by": { "type": "string" }
+  }
+}

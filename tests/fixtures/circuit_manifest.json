@@ -1,0 +1,57 @@
+{
+  "schema_version": "1.0.0",
+  "generated_at": "2026-05-28T00:00:00Z",
+  "facility": "xai-colossus-2-memphis",
+  "circuits": [
+    {
+      "batch_id": "BATCH-2026-001",
+      "circuit_id": "CIRCUIT-A1",
+      "nanoparticle": "Al2O3",
+      "volume_fraction_pct": 0.5,
+      "effective_conductivity_w_mk": 0.6732,
+      "degradation_pct": 2.1,
+      "status": "active",
+      "replacement_due": false
+    },
+    {
+      "batch_id": "BATCH-2026-001",
+      "circuit_id": "CIRCUIT-A2",
+      "nanoparticle": "Al2O3",
+      "volume_fraction_pct": 0.5,
+      "effective_conductivity_w_mk": 0.6698,
+      "degradation_pct": 3.7,
+      "status": "active",
+      "replacement_due": false
+    },
+    {
+      "batch_id": "BATCH-2026-002",
+      "circuit_id": "CIRCUIT-B1",
+      "nanoparticle": "TiO2",
+      "volume_fraction_pct": 0.3,
+      "effective_conductivity_w_mk": 0.6480,
+      "degradation_pct": 9.2,
+      "status": "active",
+      "replacement_due": false
+    },
+    {
+      "batch_id": "BATCH-2026-002",
+      "circuit_id": "CIRCUIT-B2",
+      "nanoparticle": "TiO2",
+      "volume_fraction_pct": 0.3,
+      "effective_conductivity_w_mk": 0.6451,
+      "degradation_pct": 11.4,
+      "status": "active",
+      "replacement_due": false
+    },
+    {
+      "batch_id": "BATCH-2025-009",
+      "circuit_id": "CIRCUIT-C1",
+      "nanoparticle": "CuO",
+      "volume_fraction_pct": 0.2,
+      "effective_conductivity_w_mk": 0.7120,
+      "degradation_pct": 14.8,
+      "status": "active",
+      "replacement_due": false
+    }
+  ]
+}

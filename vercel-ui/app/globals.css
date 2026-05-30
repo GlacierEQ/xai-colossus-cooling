@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --apex-cyan:   #00d4ff;
+  --apex-green:  #00ff88;
+  --apex-yellow: #ffcc00;
+  --apex-red:    #ff3333;
+  --apex-purple: #9d4edd;
+}
+
+body {
+  background: #0a0a0a;
+  color: #e2e8f0;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+.apex-card {
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+
+.apex-glow-cyan  { box-shadow: 0 0 12px #00d4ff44; border-color: #00d4ff44; }
+.apex-glow-green { box-shadow: 0 0 12px #00ff8844; border-color: #00ff8844; }
+.apex-glow-red   { box-shadow: 0 0 16px #ff333366; border-color: #ff333366; }
+.apex-glow-yellow{ box-shadow: 0 0 12px #ffcc0044; border-color: #ffcc0044; }
+
+.piston-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tier-apex  { background: #9d4edd22; color: #c77dff; border: 1px solid #9d4edd44; }
+.tier-black { background: #33415522; color: #94a3b8; border: 1px solid #33415544; }
+.tier-grey  { background: #1e293b22; color: #64748b; border: 1px solid #1e293b66; }
+
+.temp-normal   { color: #00ff88; }
+.temp-warm     { color: #ffcc00; }
+.temp-hot      { color: #ff8800; }
+.temp-critical { color: #ff3333; animation: pulse 0.8s ease-in-out infinite; }
+
+@keyframes scanline {
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+.scanline {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(transparent, #00d4ff11, transparent);
+  animation: scanline 4s linear infinite;
+  pointer-events: none;
+  z-index: 9999;
+}

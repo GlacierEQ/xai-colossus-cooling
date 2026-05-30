@@ -1,0 +1,30 @@
+name: APEX Self-Report on Failure
+on:
+  workflow_run:
+    workflows: ["*"]
+    types: [completed]
+permissions:
+  contents: read
+jobs:
+  report-failure:
+    name: Report Failure to Guardian
+    if: github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Dispatch failure event to APEX CI Guardian
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.GUARDIAN_DISPATCH_TOKEN }}
+          repository: GlacierEQ/Z-BACKUP-apex-ci-guardian
+          event-type: failure-report
+          client-payload: |
+            {
+              "repo": "${{ github.repository }}",
+              "workflow": "${{ github.event.workflow_run.name }}",
+              "run_id": "${{ github.event.workflow_run.id }}",
+              "run_url": "${{ github.event.workflow_run.html_url }}",
+              "branch": "${{ github.event.workflow_run.head_branch }}",
+              "conclusion": "${{ github.event.workflow_run.conclusion }}",
+              "timestamp": "${{ github.event.workflow_run.updated_at }}"
+            }
