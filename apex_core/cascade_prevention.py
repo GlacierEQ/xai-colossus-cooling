@@ -27,10 +27,11 @@ class CascadePreventionProtocol:
     """Intelligent circuit breaker for facility-wide cascade protection."""
 
     def __init__(self, thresholds: Optional[dict] = None):
-        self.thresholds = thresholds or {
-            "max_zone_delta_t_c": 15.0,
-            "max_inrush_mw": 50.0,
-            "max_consecutive_anomalies": 3
+        raw = thresholds or {}
+        self.thresholds = {
+            "max_zone_delta_t_c": raw.get("max_zone_delta_t_c", raw.get("delta_t_max_c", 15.0)),
+            "max_inrush_mw": raw.get("max_inrush_mw", raw.get("power_surge_mw_threshold", 50.0)),
+            "max_consecutive_anomalies": raw.get("max_consecutive_anomalies", 3)
         }
         self.zone_states: Dict[str, IsolationState] = {}
         self.anomaly_counters: Dict[str, int] = {}
