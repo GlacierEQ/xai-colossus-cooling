@@ -6,11 +6,11 @@ Treat the water cooling plant as a **living circulatory system** with modular ti
 
 ---
 
-## SYSTEM OVERVIEW
+## SYSTEM OVERVIEW: P&ID Reference Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                   WATER PLANT VERTICAL STACK                    │
+│              WATER PLANT VERTICAL STACK P&ID                   │
 │                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐   │
 │  │ TIER 1: INLET PUMP STATION (N+2 Redundancy)            │   │
