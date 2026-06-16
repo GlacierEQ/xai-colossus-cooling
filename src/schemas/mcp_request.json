@@ -1,32 +1,43 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "MCPRequest",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MCPRequest (JSON-RPC 2.0 envelope)",
+  "description": "Validates every inbound MCP tool-call request before dispatch. Covers the JSON-RPC 2.0 envelope used by MCPRouterConnector. Distinct from schemas/mcp_request.json which covers the swarm agent envelope.",
   "type": "object",
+  "required": ["jsonrpc", "method", "id"],
+  "additionalProperties": false,
   "properties": {
     "jsonrpc": {
       "type": "string",
-      "const": "2.0"
+      "const": "2.0",
+      "description": "Must be exactly the string '2.0'"
     },
     "method": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "description": "RPC method name, e.g. 'tools/call'"
     },
     "id": {
-      "type": ["string", "integer"]
+      "oneOf": [
+        { "type": "string", "minLength": 1 },
+        { "type": "integer" }
+      ],
+      "description": "Request correlation ID. Must be a non-empty string or integer."
     },
     "params": {
       "type": "object",
+      "description": "Tool call parameters block.",
       "properties": {
         "name": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1,
+          "description": "Tool name to invoke, e.g. 'emergency_blast'"
         },
         "arguments": {
-          "type": "object"
+          "type": "object",
+          "description": "Arbitrary key-value arguments passed to the tool."
         }
       },
-      "additionalProperties": true
+      "additionalProperties": false
     }
-  },
-  "required": ["jsonrpc", "method", "id"],
-  "additionalProperties": false
+  }
 }
