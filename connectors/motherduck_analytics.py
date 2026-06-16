@@ -24,14 +24,14 @@ class MotherDuckAnalyticsConnector:
     MotherDuck (DuckDB cloud) connector for thermal analytics.
     Enables SHERLOCK-ALPHA forensic queries on thermal history.
     """
-    
+
     def __init__(self):
         self.token = os.getenv('MOTHERDUCK_TOKEN', '')
         self.db_name = os.getenv('MOTHERDUCK_DB', 'colossus_cooling')
         self.conn = None
         self.connected = False
         logger.info('MotherDuck Analytics Connector initialized')
-    
+
     def connect(self):
         try:
             import duckdb
@@ -44,7 +44,7 @@ class MotherDuckAnalyticsConnector:
             import duckdb
             self.conn = duckdb.connect(':memory:')
             self._init_schema()
-    
+
     def _init_schema(self):
         self.conn.execute("""
             CREATE TABLE IF NOT EXISTS thermal_history (
@@ -55,6 +55,8 @@ class MotherDuckAnalyticsConnector:
                 power_kw    DOUBLE,
                 alert_level INTEGER
             );
+        """)
+        self.conn.execute("""
             CREATE TABLE IF NOT EXISTS pue_log (
                 ts          TIMESTAMP,
                 it_power_kw DOUBLE,
@@ -62,25 +64,30 @@ class MotherDuckAnalyticsConnector:
                 pue         DOUBLE
             );
         """)
-    
+
     def ingest_thermal_batch(self, records: List[Dict]):
         """Bulk insert thermal records into DuckDB."""
         if not self.conn or not records:
             return
         rows = [
-            (r.get('timestamp', datetime.utcnow()),
-             r['node_id'], r['zone_id'],
-             r['temp_celsius'], r.get('power_kw', 0.0),
-             r.get('alert_level', 0))
+            (
+                r.get('timestamp', datetime.utcnow()),
+                r['node_id'],
+                r['zone_id'],
+                r['temp_celsius'],
+                r.get('power_kw', 0.0),
+                r.get('alert_level', 0),
+            )
             for r in records
         ]
         self.conn.executemany(
             'INSERT INTO thermal_history VALUES (?, ?, ?, ?, ?, ?)', rows
         )
-    
+
     def query_hot_zones(self, window_minutes: int = 60) -> List[Dict]:
         """SHERLOCK-ALPHA: Find zones with elevated temps in recent window."""
-        result = self.conn.execute("""
+        result = self.conn.execute(
+            """
             SELECT zone_id,
                    AVG(temp_c)  AS avg_temp,
                    MAX(temp_c)  AS peak_temp,
@@ -90,12 +97,18 @@ class MotherDuckAnalyticsConnector:
               AND alert_level >= 1
             GROUP BY zone_id
             ORDER BY peak_temp DESC
-        """, (window_minutes,)).fetchall()
-        return [{'zone_id': r[0], 'avg_temp': r[1], 'peak_temp': r[2], 'events': r[3]} for r in result]
-    
+            """,
+            (window_minutes,),
+        ).fetchall()
+        return [
+            {'zone_id': r[0], 'avg_temp': r[1], 'peak_temp': r[2], 'events': r[3]}
+            for r in result
+        ]
+
     def query_pue_trend(self, days: int = 7) -> List[Dict]:
         """Calculate PUE trend over last N days."""
-        result = self.conn.execute("""
+        result = self.conn.execute(
+            """
             SELECT DATE_TRUNC('hour', ts) AS hour,
                    AVG(pue) AS avg_pue,
                    MIN(pue) AS best_pue
@@ -103,12 +116,18 @@ class MotherDuckAnalyticsConnector:
             WHERE ts > NOW() - (INTERVAL '1 day' * ?)
             GROUP BY 1
             ORDER BY 1
-        """, (days,)).fetchall()
-        return [{'hour': str(r[0]), 'avg_pue': r[1], 'best_pue': r[2]} for r in result]
-    
+            """,
+            (days,),
+        ).fetchall()
+        return [
+            {'hour': str(r[0]), 'avg_pue': r[1], 'best_pue': r[2]}
+            for r in result
+        ]
+
     def query_anomaly_patterns(self) -> List[Dict]:
         """SHERLOCK forensic: find recurring anomaly patterns."""
-        result = self.conn.execute("""
+        result = self.conn.execute(
+            """
             SELECT node_id,
                    COUNT(*) AS anomaly_count,
                    AVG(temp_c) AS avg_temp_during_anomaly,
@@ -119,5 +138,9 @@ class MotherDuckAnalyticsConnector:
             HAVING COUNT(*) > 3
             ORDER BY anomaly_count DESC
             LIMIT 20
-        """).fetchall()
-        return [{'node': r[0], 'count': r[1], 'avg': r[2], 'peak': r[3]} for r in result]
+            """
+        ).fetchall()
+        return [
+            {'node': r[0], 'count': r[1], 'avg': r[2], 'peak': r[3]}
+            for r in result
+        ]
