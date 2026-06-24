@@ -108,12 +108,12 @@ def safe_validate(request: Dict[str, Any]) -> Dict[str, Any]:
         return {
             "status": "ERROR",
             "reason": exc.reason,
-            "request_id": request.get("request_id"),
+            "request_id": request.get("request_id") if isinstance(request, dict) else None,
         }
     except Exception as exc:  # schema load failure, etc.
         logger.exception("Unexpected error during MCP validation")
         return {
             "status": "ERROR",
             "reason": f"Internal validation error: {exc}",
-            "request_id": request.get("request_id"),
+            "request_id": request.get("request_id") if isinstance(request, dict) else None,
         }

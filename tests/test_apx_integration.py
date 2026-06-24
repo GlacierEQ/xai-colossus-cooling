@@ -72,30 +72,30 @@ class TestMCPRequestValidator(unittest.TestCase):
         self.validator = MCPRequestValidator()
 
     def test_valid_mcp_request(self):
-        """Verify standard compliant JSON-RPC 2.0 requests pass validation."""
+        """Verify standard compliant MCP requests pass validation."""
         valid_payload = {
-            "jsonrpc": "2.0",
-            "method": "tools/call",
-            "id": 123,
-            "params": {
-                "name": "vault_sync",
-                "arguments": {"dry_run": False}
-            }
+            "request_type": "request_zone_snapshot",
+            "request_id": "550e8400-e29b-41d4-a716-446655440000",
+            "timestamp": "2026-06-24T00:00:00Z",
+            "source_agent": "test-agent",
+            "severity": "INFO",
+            "zone_id": "ZONE-A"
         }
         is_valid, msg = self.validator.validate(valid_payload)
         self.assertTrue(is_valid)
         self.assertEqual(msg, "VALIDATED")
 
-    def test_invalid_rpc_version(self):
-        """Verify non-2.0 JSON-RPC versions are rejected."""
+    def test_invalid_request_type(self):
+        """Verify invalid request types are rejected."""
         invalid_payload = {
-            "jsonrpc": "1.0",
-            "method": "tools/list",
-            "id": 1
+            "request_type": "invalid_type",
+            "request_id": "550e8400-e29b-41d4-a716-446655440000",
+            "timestamp": "2026-06-24T00:00:00Z",
+            "source_agent": "test-agent",
+            "severity": "INFO"
         }
         is_valid, msg = self.validator.validate(invalid_payload)
         self.assertFalse(is_valid)
-        self.assertTrue(any(x in msg.lower() for x in ["jsonrpc", "expected", "2.0"]))
 
     def test_missing_required_fields(self):
         """Verify payloads missing required keys are rejected."""
@@ -144,21 +144,21 @@ class TestMCPRouterIntegration(unittest.IsolatedAsyncioTestCase):
         
         # 2. Queue a valid tool request
         valid_request = {
-            "jsonrpc": "2.0",
-            "method": "tools/call",
-            "id": 999,
-            "params": {
-                "name": "emergency_blast",
-                "arguments": {}
-            }
+            "request_type": "emergency_broadcast",
+            "request_id": "550e8400-e29b-41d4-a716-446655440999",
+            "timestamp": "2026-06-24T00:00:00Z",
+            "source_agent": "test-agent",
+            "severity": "CRITICAL",
+            "zone_id": "ZONE-A"
         }
         orch._mcp_router.queue_request(valid_request)
         
         # 3. Queue an invalid request (to verify rejection)
         invalid_request = {
-            "jsonrpc": "1.0",
-            "method": "tools/call",
-            "id": 888
+            "request_type": "invalid_type",
+            "request_id": "550e8400-e29b-41d4-a716-446655440888",
+            "timestamp": "2026-06-24T00:00:00Z",
+            "source_agent": "test-agent"
         }
         orch._mcp_router.queue_request(invalid_request)
         

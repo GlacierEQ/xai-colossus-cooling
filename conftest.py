@@ -20,6 +20,11 @@ ROOT = Path(__file__).parent.resolve()
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+# Add src/ so `from schemas.x` works
+_src_path = ROOT / 'src'
+if _src_path.exists() and str(_src_path) not in sys.path:
+    sys.path.insert(0, str(_src_path))
+
 # Alias mastermind-fusion/ -> mastermind_fusion module
 _fusion_path = ROOT / 'mastermind-fusion'
 if _fusion_path.exists() and str(_fusion_path) not in sys.path:
@@ -45,4 +50,5 @@ if _fusion_path.exists() and str(_fusion_path) not in sys.path:
             if _sub_spec and _sub_spec.loader:
                 _sub_mod = importlib.util.module_from_spec(_sub_spec)
                 sys.modules[f'mastermind_fusion.{_sub.stem}'] = _sub_mod
+                _sub_spec.loader.exec_module(_sub_mod)
         _spec.loader.exec_module(_mod)
