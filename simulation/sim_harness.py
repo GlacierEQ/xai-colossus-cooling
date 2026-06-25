@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 APEX Colossus Simulation Harness
-GlacierEQ Sovereign Stack
+GlacierEQ APEX Stack
 Author: Casey Barton
 
 Configurable multi-scale simulation for testing thermal orchestration

@@ -2,7 +2,7 @@
 """
 APEX ASPEN GROVE CONNECTOR — xAI Colossus Cooling
 ==================================================
-GlacierEQ Sovereign Stack | Glacier-Thermal v1.2
+GlacierEQ APEX Stack | Glacier-Thermal v1.2
 
 This module bridges the local APEX Thermal Orchestrator with the 
 Aspen Grove distributed intelligence layer (26-node constellation).

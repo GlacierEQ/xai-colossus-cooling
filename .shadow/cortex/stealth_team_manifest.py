@@ -1,6 +1,6 @@
 """
 .shadow/cortex/stealth_team_manifest.py
-Ring -3 | GlacierEQ Sovereign Stack
+Ring -3 | GlacierEQ APEX Stack
 Author: Casey Barton | APEX
 Status: ACTIVE — CHUNK POWER v2.0
 

@@ -2,7 +2,7 @@
 """
 APEX IMMERSION COOLING — Colossus v2.0
 =======================================
-GlacierEQ Sovereign Stack | Glacier-Thermal v1.3
+GlacierEQ APEX Stack | Glacier-Thermal v1.3
 
 Simulates two-phase immersion cooling and microfluidics.
 Uses Novec 7100 (Dielectric) for 2M GPU cluster.

@@ -2,7 +2,7 @@
 """
 XAI COLOSSUS WATER PLANT — Vertical Modular Cooling Stack
 ============================================================
-APEX HYDRO-THERMAL-NEXUS | GlacierEQ Sovereign Stack
+APEX HYDRO-THERMAL-NEXUS | GlacierEQ APEX Stack
 
 Design Principle:
 A vertical modular stack that treats the water plant as a living circulatory

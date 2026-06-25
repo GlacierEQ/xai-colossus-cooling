@@ -2,7 +2,7 @@
 """
 XAI COLOSSUS SENSORS — Telemetry Stream v1.0
 =============================================
-APEX TELEMETRY-NEXUS | GlacierEQ Sovereign Stack
+APEX TELEMETRY-NEXUS | GlacierEQ APEX Stack
 
 This module provides a high-throughput, async telemetry stream simulation
 for 800M+ data points. It uses a statistical model to generate realistic

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 apex_cli.py
-GlacierEQ Sovereign Stack | APEX Ring 0
+GlacierEQ APEX Stack | APEX Ring 0
 Author: Casey Barton
 
 APEX Command-Line Interface — Blueprint generation engine.
@@ -143,7 +143,7 @@ def cmd_status(args):
 def main():
     parser = argparse.ArgumentParser(
         prog='apex',
-        description='APEX Sovereign Stack CLI — GlacierEQ / xAI Colossus Cooling',
+        description='APEX APEX Stack CLI — GlacierEQ / xAI Colossus Cooling',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""Examples:
   python apex_cli.py blueprint

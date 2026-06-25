@@ -8,5 +8,5 @@
 | Executive Briefing for xAI | ✅ | April 24, 2026 |
 | M2A + Aspen audit layer | ✅ | April 28–29, 2026 |
 | APEX Swarm Fabric v0.1.0 | ✅ | May 22, 2026 |
-| Sovereignty Upgrade Phase 4 | ✅ | May 27, 2026 |
+| Autonomousty Upgrade Phase 4 | ✅ | May 27, 2026 |
 | World-class portfolio cleanup | ✅ | May 27, 2026 |

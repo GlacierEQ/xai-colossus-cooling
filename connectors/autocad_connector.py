@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 connectors/autocad_connector.py
-GlacierEQ Sovereign Stack | APEX Ring 0
+GlacierEQ APEX Stack | APEX Ring 0
 Author: Casey Barton
 Purpose: Programmatic AutoCAD control via COM (Windows) + ezdxf (cross-platform)
          Generates CCL-002 Underfloor Piping Plan — DXF, PDF, SVG, PNG outputs.

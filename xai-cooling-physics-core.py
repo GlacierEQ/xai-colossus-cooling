@@ -2,7 +2,7 @@
 """
 XAI COLOSSUS COOLING — Thermal Physics Core v2.0
 =================================================
-APEX HYPERION-THERMAL-NEXUS | GlacierEQ Sovereign Stack
+APEX HYPERION-THERMAL-NEXUS | GlacierEQ APEX Stack
 
 FIXES in v2.0:
   - Corrected efficiency_index: uses outlet_temp vs GPU_THERMAL_LIMIT (not raw delta_t)

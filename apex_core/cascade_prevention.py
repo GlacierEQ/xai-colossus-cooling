@@ -2,7 +2,7 @@
 """
 APEX CASCADE PREVENTION — Colossus v2.0
 ========================================
-GlacierEQ Sovereign Stack | Glacier-Thermal v1.4
+GlacierEQ APEX Stack | Glacier-Thermal v1.4
 
 Real-time protection against thermal cascades and power surges.
 Uses "Circuit Breaker" patterns to isolate failing zones.

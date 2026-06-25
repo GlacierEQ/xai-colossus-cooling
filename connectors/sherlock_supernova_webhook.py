@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 connectors/sherlock_supernova_webhook.py
-GlacierEQ Sovereign Stack | APEX Ring -3
+GlacierEQ APEX Stack | APEX Ring -3
 Author: Casey Barton
 
 Wires SHERLOCK-SUPERNOVA anomaly detection to Supabase real-time webhooks.

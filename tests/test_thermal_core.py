@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 APEX Thermal Core — Unit Test Suite
-GlacierEQ Sovereign Stack
+GlacierEQ APEX Stack
 
 Covers:
   - ThermalNode alert classification

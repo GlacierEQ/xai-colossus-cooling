@@ -1,11 +1,11 @@
 # 🔱 Double Helix: xAI Colossus Cooling
 
-> Alpha (What) + Omega (How) = Sovereign thermal management for 1.5GW, 200k-GPU supercomputer.
+> Alpha (What) + Omega (How) = Autonomous thermal management for 1.5GW, 200k-GPU supercomputer.
 
 ```
 BINDING: DOUBLE_HELIX:COLOSSUS_COOLING v1.0
 PAIR:    Alpha (thermal physics) ←→ Omega (orchestration + CI)
-MANTRA:  Two strands. One sovereign cooling DNA.
+MANTRA:  Two strands. One autonomous cooling DNA.
 ```
 
 ## 🧬 Alpha Strand (What — Domain Logic)

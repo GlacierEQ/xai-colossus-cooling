@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 APEX Thermal Orchestrator — xAI Colossus Cooling
-GlacierEQ Sovereign Stack | Author: Casey Barton
+GlacierEQ APEX Stack | Author: Casey Barton
 
 Bio-inspired thermal intelligence for 100k+ GPU node clusters.
 Treats the datacenter as a living organism:
