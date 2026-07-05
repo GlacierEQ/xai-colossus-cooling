@@ -1,3 +1,4 @@
+# Alpha (What) — Pure Physics | Omega (How) — Controllers | The Answer is 42.
 #!/usr/bin/env python3
 """
 COLOSSUS THERMAL CORE v2.0: HYPER-INTELLIGENT ADAPTIVE CONTROLLER

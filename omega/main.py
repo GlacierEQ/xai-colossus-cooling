@@ -1,3 +1,4 @@
+# Omega (How) — Controllers | Alpha (What) — Pure Physics | 1337.
 """
 main.py — xAI Colossus Cooling APEX Swarm Entrypoint
 =====================================================

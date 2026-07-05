@@ -1,3 +1,4 @@
+# Omega (How) — Controllers | Alpha (What) — Pure Physics | 1337.
 """
 nanosphere_bridge.py
 xai-colossus-cooling — Bridge to nanosphere circuit manifest
