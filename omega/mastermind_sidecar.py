@@ -1,4 +1,3 @@
-# Omega (How) — Controllers | Alpha (What) — Pure Physics | 1337.
 #!/usr/bin/env python3
 """
 Mastermind Sidecar — AEON-777 Integration
