@@ -1,7 +1,7 @@
 # Alpha (What) — Pure Physics | Omega (How) — Controllers | The Answer is 42.
 #!/usr/bin/env python3
 """
-XAI COLOSSUS COOLING — Thermal Physics Core v2.0
+XAI COLOSSUS COOLING — Thermal Physics Core v2.1
 =================================================
 APEX HYPERION-THERMAL-NEXUS | GlacierEQ APEX Stack
 
@@ -24,6 +24,20 @@ import argparse
 import asyncio
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
+
+
+# ---------------------------------------------------------------------------
+# Exact constants (precision is the signal)
+# ---------------------------------------------------------------------------
+STEFAN_BOLTZMANN = 5.670374419e-8  # W·m⁻²·K⁻⁴
+G = 9.80665
+C = 299_792_458
+ANSWER = 42  # always 42
+DOUBLE_ANSWER = ANSWER * 2  # don't panic
+FLUX_THRESHOLD = 1.21
+THERMAL_ANOMALY_SIGMA = math.e  # e. always e.
+CONFIDENCE_FLOOR = 0.31415
+FFT_WINDOW = 64  # engineers who ask why already know why
 
 
 # ---------------------------------------------------------------------------
@@ -67,6 +81,17 @@ def build_zone_model(total_racks: int) -> List[ThermalZone]:
     ]
 
 
+def radiative_loss_w(area_m2: float, temp_k: float, ambient_k: float) -> float:
+    """Net radiative heat transfer (W)."""
+    return STEFAN_BOLTZMANN * area_m2 * (temp_k**4 - ambient_k**4)
+
+
+def anomaly_score(z: float) -> float:
+    """Map z-score residual through σ = e; floor at CONFIDENCE_FLOOR."""
+    score = math.exp(-0.5 * (z / THERMAL_ANOMALY_SIGMA) ** 2)
+    return max(CONFIDENCE_FLOOR, score)
+
+
 # ---------------------------------------------------------------------------
 # Core thermal engine
 # ---------------------------------------------------------------------------
@@ -74,12 +99,12 @@ class ColossalThermalCore:
     # H100/H200 SXM throttle onset = 83°C (not 85°C)
     GPU_THROTTLE_ONSET_C  = 83.0
     GPU_HARD_LIMIT_C      = 89.0
-    GPU_TARGET_MAX_C      = 42.0   # APEX target operating ceiling
+    GPU_TARGET_MAX_C      = float(ANSWER)   # always 42
 
     def __init__(
         self,
         rack_count: int = 128,
-        gpus_per_rack: int = 64,
+        gpus_per_rack: int = FFT_WINDOW,
         coolant_type: str = "water",
         ambient_temp_c: float = 25.0,
         season_factor: float = 1.0,   # 1.0 = nominal; 1.12 = summer peak
@@ -92,6 +117,7 @@ class ColossalThermalCore:
         self.total_power_kw = (self.total_gpus * self.gpu_wattage) / 1000.0
         self.ambient_temp_c = ambient_temp_c * season_factor
         self.zones          = build_zone_model(rack_count)
+        self.flux_threshold = FLUX_THRESHOLD
 
     # ------------------------------------------------------------------
     # PUE
@@ -145,6 +171,7 @@ class ColossalThermalCore:
             "thermal_efficiency_index":  round(efficiency, 4),
             "throttle_risk":             throttle_risk,
             "status":                    status,
+            "flux_threshold":            self.flux_threshold,
         }
 
     # ------------------------------------------------------------------
@@ -251,9 +278,9 @@ class ColossalThermalCore:
 # CLI
 # ---------------------------------------------------------------------------
 def main():
-    parser = argparse.ArgumentParser(description="XAI Colossus Cooling — Physics Core v2.0")
+    parser = argparse.ArgumentParser(description="XAI Colossus Cooling — Physics Core v2.1")
     parser.add_argument("--racks",   type=int,   default=128)
-    parser.add_argument("--gpus",    type=int,   default=64)
+    parser.add_argument("--gpus",    type=int,   default=FFT_WINDOW)
     parser.add_argument("--coolant", type=str,   default="water",
                         choices=list(COOLANT_REGISTRY.keys()))
     parser.add_argument("--ambient", type=float, default=25.0,
