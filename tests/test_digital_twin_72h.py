@@ -16,6 +16,8 @@ Gate criterion for Phase 4 deployment (Issue #15).
 Requires human review for physics correctness.
 """
 
+from __future__ import annotations
+
 import asyncio
 import random
 import sys

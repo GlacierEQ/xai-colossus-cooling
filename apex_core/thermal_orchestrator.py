@@ -110,7 +110,14 @@ class APEXPiston:
         return await self.execute(context)
 
     async def execute(self, context: dict) -> dict:
-        raise NotImplementedError
+        # Base piston is abstract in spirit; subclasses implement real work.
+        # Never leave a bare raise in the hire path — return an explicit NOOP.
+        return {
+            "piston": self.name,
+            "tier": self.tier,
+            "status": "NOOP_BASE",
+            "ops": 0,
+        }
 
 
 class MICROWAVEPiston(APEXPiston):

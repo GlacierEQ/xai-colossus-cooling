@@ -110,7 +110,12 @@ class APEXPiston:
         return await self.execute(context)
 
     async def execute(self, context: dict) -> dict:
-        raise NotImplementedError
+        return {
+            "piston": self.name,
+            "tier": self.tier,
+            "status": "NOOP_BASE",
+            "ops": 0,
+        }
 
 
 class MICROWAVEPiston(APEXPiston):

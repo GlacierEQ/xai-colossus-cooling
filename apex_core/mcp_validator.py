@@ -17,10 +17,12 @@ Usage:
     # else proceed with dispatch
 """
 
+from __future__ import annotations
+
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger("APEX-MCP-VALIDATOR")
 
@@ -29,7 +31,7 @@ logger = logging.getLogger("APEX-MCP-VALIDATOR")
 # the working directory.                                                        #
 # --------------------------------------------------------------------------- #
 _SCHEMA_PATH = Path(__file__).parent.parent / "schemas" / "mcp_request.json"
-_SCHEMA: Dict[str, Any] | None = None
+_SCHEMA: Optional[Dict[str, Any]] = None
 
 
 def _load_schema() -> Dict[str, Any]:
