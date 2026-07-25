@@ -12,6 +12,11 @@ Verifies:
 import asyncio
 import pytest
 import os
+import sys
+import pathlib
+
+sys.path.insert(0, str(pathlib.Path(__file__).parent.parent / "src"))
+sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 from apex_core.thermal_orchestrator import (
     APEXThermalOrchestrator, 
     CoolingMode, 
@@ -19,7 +24,10 @@ from apex_core.thermal_orchestrator import (
     ThermalNode
 )
 from apex_core.aspen_connector import AspenGroveConnector
-from sensors.telemetry_stream import TelemetryStreamGenerator
+try:
+    from sensors.telemetry_stream import TelemetryStreamGenerator
+except ImportError:
+    from src.sensors.telemetry_stream import TelemetryStreamGenerator
 from xai_cooling_physics_core import ColossalThermalCore
 
 @pytest.mark.asyncio

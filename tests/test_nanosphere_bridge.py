@@ -17,14 +17,20 @@ import sys
 
 import pytest
 
-sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
-
-from nanosphere_bridge import (
-    CircuitFluidState,
-    NanosphereBridgeError,
-    assert_coolant_invariants,
-    load_circuit_manifest,
-)
+try:
+    from nanosphere_bridge import (
+        CircuitFluidState,
+        NanosphereBridgeError,
+        assert_coolant_invariants,
+        load_circuit_manifest,
+    )
+except ImportError:
+    from connectors.nanosphere_bridge import (
+        CircuitFluidState,
+        NanosphereBridgeError,
+        assert_coolant_invariants,
+        load_circuit_manifest,
+    )
 
 FIXTURE_DIR = pathlib.Path(__file__).parent / "fixtures"
 GOOD_MANIFEST = FIXTURE_DIR / "circuit_manifest.json"
