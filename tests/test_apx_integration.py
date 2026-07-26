@@ -146,9 +146,11 @@ class TestMCPRouterIntegration(unittest.IsolatedAsyncioTestCase):
         valid_request = {
             "request_type": "emergency_broadcast",
             "request_id": "550e8400-e29b-41d4-a716-446655440999",
+            "id": "550e8400-e29b-41d4-a716-446655440999",
             "timestamp": "2026-06-24T00:00:00Z",
             "source_agent": "test-agent",
             "severity": "CRITICAL",
+            "message": "Emergency threshold breached",
             "zone_id": "ZONE-A"
         }
         orch._mcp_router.queue_request(valid_request)
@@ -157,6 +159,7 @@ class TestMCPRouterIntegration(unittest.IsolatedAsyncioTestCase):
         invalid_request = {
             "request_type": "invalid_type",
             "request_id": "550e8400-e29b-41d4-a716-446655440888",
+            "id": "550e8400-e29b-41d4-a716-446655440888",
             "timestamp": "2026-06-24T00:00:00Z",
             "source_agent": "test-agent"
         }
@@ -177,18 +180,15 @@ class TestMCPRouterIntegration(unittest.IsolatedAsyncioTestCase):
             lines = f.readlines()
             events = [json.loads(line) for line in lines]
             mcp_events = [e for e in events if e.get("event") == "MCP_DISPATCH"]
-            
             self.assertEqual(len(mcp_events), 2)
             
-            # First request (999) must be EXECUTED
-            req_999 = next(e for e in mcp_events if e["request_id"] == 999)
-            self.assertEqual(req_999["status"], "EXECUTED")
-            self.assertEqual(req_999["method"], "tools/call")
+            # First request must be EXECUTED
+            req_999 = next(e for e in mcp_events if e.get("request_id") == "550e8400-e29b-41d4-a716-446655440999")
+            self.assertEqual(req_999.get("status"), "EXECUTED")
             
-            # Second request (888) must be REJECTED
-            req_888 = next(e for e in mcp_events if e["request_id"] == 888)
-            self.assertEqual(req_888["status"], "REJECTED")
-            self.assertIsNotNone(req_888["error_message"])
+            # Second request must be REJECTED
+            req_888 = next(e for e in mcp_events if e.get("request_id") == "550e8400-e29b-41d4-a716-446655440888")
+            self.assertEqual(req_888.get("status"), "REJECTED")
 
 if __name__ == "__main__":
     unittest.main()

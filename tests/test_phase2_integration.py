@@ -27,7 +27,10 @@ from apex_core.aspen_connector import AspenGroveConnector
 try:
     from sensors.telemetry_stream import TelemetryStreamGenerator
 except ImportError:
-    from src.sensors.telemetry_stream import TelemetryStreamGenerator
+    try:
+        from src.sensors.telemetry_stream import TelemetryStreamGenerator
+    except ImportError:
+        from alpha.sensors.telemetry_stream import TelemetryStreamGenerator
 from xai_cooling_physics_core import ColossalThermalCore
 
 @pytest.mark.asyncio

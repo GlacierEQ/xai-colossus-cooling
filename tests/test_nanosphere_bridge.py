@@ -25,12 +25,20 @@ try:
         load_circuit_manifest,
     )
 except ImportError:
-    from connectors.nanosphere_bridge import (
-        CircuitFluidState,
-        NanosphereBridgeError,
-        assert_coolant_invariants,
-        load_circuit_manifest,
-    )
+    try:
+        from connectors.nanosphere_bridge import (
+            CircuitFluidState,
+            NanosphereBridgeError,
+            assert_coolant_invariants,
+            load_circuit_manifest,
+        )
+    except ImportError:
+        from omega.nanosphere_bridge import (
+            CircuitFluidState,
+            NanosphereBridgeError,
+            assert_coolant_invariants,
+            load_circuit_manifest,
+        )
 
 FIXTURE_DIR = pathlib.Path(__file__).parent / "fixtures"
 GOOD_MANIFEST = FIXTURE_DIR / "circuit_manifest.json"
