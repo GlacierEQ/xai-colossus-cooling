@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package colossus.telemetry.v1;
+
+message GPUCoolingTelemetry {
+  uint32 cluster_id = 1;
+  uint32 total_gpus = 2;
+  double flow_rate_lpm = 3;
+  double inlet_temp_celsius = 4;
+  double outlet_temp_celsius = 5;
+  double pue_ratio = 6;
+  uint64 timestamp_ns = 7;
+}
+
+service ColossusCoolingService {
+  rpc StreamTelemetry (GPUCoolingTelemetry) returns (stream GPUCoolingTelemetry);
+}

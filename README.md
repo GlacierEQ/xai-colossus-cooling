@@ -1,98 +1,51 @@
-# ❄️ xAI Colossus Cooling — Thermal Management (ELITE)
+# xAI Colossus Cooling — Polyglot Thermal Management Suite 🌊
 
-[![Tests](https://img.shields.io/badge/tests-63%20passing-brightgreen.svg)](https://github.com/GlacierEQ/xai-colossus-cooling)
-[![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/)
-[![Pro-Code Elite](https://img.shields.io/badge/Pro--Code-Elite%20HUMANIZED-brightgreen.svg)](PRO_CODE_AUDIT.md)
+> **gRPC + Protobuf schema, C++ thermal solver, TypeScript dashboard, and SQL persistence for GPU cooling.**
 
-> **Autonomous thermal management for 1.5GW, 200k-GPU AI supercomputer.**
-> Physics-Informed Neural Network · 100-tank immersion · Cascade shield · Predictive dispatch.
+[![Protobuf](https://img.shields.io/badge/Protobuf-3.0+-blue)]()
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6)]()
+[![SQL](https://img.shields.io/badge/SQL-PostgreSQL-blue)]()
+[![Python](https://img.shields.io/badge/Python-3.9+-blue)]()
+[![Domain](https://img.shields.io/badge/Domain-Thermal%20Management-cyan)]()
 
-## Problem: $15-40M Annual Cooling Costs
+---
 
-**Current Industry (PUE 1.67):** Reactive cooling, siloed zones, inefficient
-**Colossus Solution (PUE <1.15):** Predictive AI orchestration, autonomous cascade
-**Result:** 31% cost reduction ($millions saved)
+## 🎯 For Recruiters & Hiring Managers
 
-## The APEX Thermal Orchestrator
+This repository implements the **xAI Colossus Polyglot Cooling Suite** — coordinating thermal management across 100,000+ GPUs using gRPC/Protobuf RPCs, TypeScript frontends, and SQL persistent storage. It demonstrates:
 
-```
-100ms tick cycle → 4 Piston Modes → Predictive Dispatch
-  ↓
-  MICROWAVE: Zone sweep + CRAC boost
-  SUPERNOVA: Emergency full blast (<50ms response)
-  SHADOW: Anomaly detection (EMA tracking)
-  GHOST: Micro-optimization (invisible rebalancing)
-  CORE-THINK: Predictive (3-step lookahead, 85%+ accuracy)
-```
+- **Protobuf IDL definitions** (`colossus_cooling.proto`) defining zero-copy thermal telemetry schemas
+- **TypeScript dashboard components** rendering real-time thermal heatmaps
+- **PostgreSQL schema** tracking historical cooling efficiency and PUE targets
+- **Python control loops** tuning liquid flow rates based on GPU load predictions
 
-## Performance vs. Industry
+**Why this matters**: Enterprise thermal management requires polyglot architectures where fast gRPC binary schemas link real-time sensors to analytical databases and web dashboards.
 
-| Metric | Target | Industry | Improvement |
-|--------|--------|----------|-------------|
-| PUE | <1.15 | 1.67 | 31% |
-| Emergency Response | <50ms | 2-5s | 100-150x faster |
-| GPU Temp | 35-42°C | 55-80°C | 20°C reduction |
-| Cost | -45% | Baseline | $millions saved |
-| Uptime | 99.999% | 99.9% | 10x |
+---
 
-## 63 Tests Passing
+## 🔬 For Engineers & Technical Reviewers
+
+### Core Components
+
+| Component | Language | Purpose |
+|---|---|---|
+| `proto/colossus_cooling.proto` | Protobuf | Binary IDL for thermal sensor & flow control RPCs |
+| `src/components/` | TSX/CSS | Real-time thermal heatmap UI components |
+| `src/schema.sql` | SQL | PostgreSQL tables for thermal log persistence |
+| `src/cooling_suite.py` | Python | Thermal control loop & gRPC server harness |
+
+---
+
+## 🤖 ML/AI & Programmatic Mesh Integration
+
+- **MCP Tool**: `cooling_suite_status()` — thermal queryable by swarm agents
+- **Mastermind Sidecar**: Integrated with APEX Highway mesh
+- **SHA-256 Integrity**: Tracked in `.integrity/file_hashes.json`
+
+---
+
+## ⚡ Quick Start
 
 ```bash
-python -m pytest tests/ -v
+python3 src/cooling_suite.py
 ```
-
-✅ Thermal node dynamics  
-✅ Cooling zone orchestration  
-✅ Piston mode transitions  
-✅ CORE-THINK predictor accuracy  
-✅ Emergency response timing  
-✅ 24h continuous operation  
-
-## Physics Models
-
-- **PINN** — Physics-Informed Neural Networks (validated)
-- **Maxwell** — Heat transfer in immersion cooling
-- **Navier-Stokes** — Fluid dynamics optimization
-- **Arrhenius** — Component lifecycle degradation
-
-## Deployment
-
-| Phase | Timeline | Deliverable |
-|-------|----------|-------------|
-| Phase 2 | 4 weeks | Aspen Grove v7 + Dashboard |
-| Phase 3 | 8 weeks | Immersion cooling interface |
-| Phase 4 | 12 weeks | 100K validation + rollout |
-| TOTAL | 24 weeks | 40% savings live |
-
-## Architecture
-
-**APEX Thermal Orchestrator** treats the datacenter as a living system:
-- **Sensors:** Temperature, power, flow monitoring (real-time)
-- **Hormones:** CRAC activation, liquid flow rates
-- **Organs:** Cooling zones (4), GPU clusters (100K+)
-- **Immune Response:** SUPERNOVA emergency cascade
-- **Memory:** Aspen Grove v7 (Mem0 + SuperMemory + Neo4j + Pinecone + Supabase)
-
-## Built on APEX
-
-800+ repo autonomous orchestration platform  
-Proven across enterprise infrastructure, legal automation, AI optimization  
-Zero vendor lock-in, fully open architecture
-
----
-
-**Status:** 🟢 PRODUCTION READY  
-**Contact:** Casey Barton | GlacierEQ APEX Stack  
-**Repo:** github.com/GlacierEQ/xai-colossus-cooling  
-
-*Physics-first thermal orchestration for colossus-scale GPU clusters.*
----
-
-## Fleet ops (transparent)
-
-This repo may include `.integrity/` (SHA-256 integrity) and/or a health sidecar.
-These are **documented fleet operations**, not covert implants. See [SECURITY_AND_FLEET_OPS.md](SECURITY_AND_FLEET_OPS.md).
-
-## Helix strand
-
-See [HELIX_STRAND.md](HELIX_STRAND.md) — piston/spiral role in the portfolio double helix.
