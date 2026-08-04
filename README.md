@@ -11,7 +11,8 @@ The strongest current path is a Python simulation and test harness:
 - [`apex_core/thermal_orchestrator.py`](apex_core/thermal_orchestrator.py) models thermal nodes and cooling zones, classifies threshold states, computes zone statistics, and dispatches asynchronous controller modules.
 - [`cells/rack_cell.py`](cells/rack_cell.py) models rack-level inlet, exhaust, power, and intervention thresholds.
 - [`src/thermal_sentinel.py`](src/thermal_sentinel.py) provides a small trend-projection demonstration. It is a heuristic proxy, **not a trained LSTM model**.
-- [`omega/apex_cli.py`](omega/apex_cli.py) exposes blueprint-generation and dependency/environment status commands.
+- [`omega/apex_cli.py`](omega/apex_cli.py) owns blueprint-generation and dependency/environment status commands.
+- [`apex_cli.py`](apex_cli.py) is the stable repository-root entrypoint that delegates to the Omega CLI implementation.
 - [`connectors/`](connectors/) contains optional integration adapters and simulation bridges. Adapter presence does not establish live provider connectivity.
 - [`tests/`](tests/) contains behavioral tests for thermal classification, zone computation, controller actions, schemas, connector boundaries, and selected integration paths.
 
@@ -46,7 +47,7 @@ python -m pytest tests/test_thermal_core.py -v
 ### Dependency and environment report
 
 ```bash
-python omega/apex_cli.py status
+python apex_cli.py status
 ```
 
 The status command reports imports and environment-variable presence. It is **not** a live service-health check.
@@ -55,7 +56,7 @@ The status command reports imports and environment-variable presence. It is **no
 
 ```bash
 python -m pip install ezdxf matplotlib
-python omega/apex_cli.py blueprint --all --output /tmp/CCL-002-demo
+python apex_cli.py blueprint --all --output /tmp/CCL-002-demo
 ```
 
 Generated drawings are portfolio artifacts and require independent engineering review before any real-world use.
@@ -108,7 +109,7 @@ This repository contains multiple generations and experimental layers. The curre
 
 1. `apex_core/` and `cells/` for the primary simulation model;
 2. `tests/test_thermal_core.py` for the clearest behavioral contract;
-3. `omega/apex_cli.py` for blueprint and environment commands;
+3. `omega/apex_cli.py` and root `apex_cli.py` for blueprint and environment commands;
 4. `connectors/` for optional boundaries that require separate verification;
 5. `digital-twin/`, dashboards, ML experiments, and historical documents only after their own runnable receipts are established.
 
