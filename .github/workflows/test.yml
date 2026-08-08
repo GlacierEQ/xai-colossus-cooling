@@ -1,4 +1,4 @@
-name: APEX CI -- Test Suite
+name: Cooling Core Truth Gate
 
 on:
   push:
@@ -6,69 +6,83 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
-  test:
-    name: Run APEX Test Suite
+  core-behavior:
+    name: Core simulation and truth surface
     runs-on: ubuntu-latest
-    env:
-      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-      NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-      MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
+    timeout-minutes: 10
 
     steps:
-      - name: Checkout repo
+      - name: Check out repository
         uses: actions/checkout@v4
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          cache: 'pip'
+          python-version: "3.11"
+          cache: pip
 
-      - name: Install dependencies
+      - name: Install bounded test dependencies
+        run: python -m pip install --disable-pip-version-check pytest pytest-asyncio
+
+      - name: Run fail-closed core gate
         run: |
-          pip install --upgrade pip
-          pip install ezdxf matplotlib scikit-learn numpy pandas pytest
+          python -m pytest \
+            tests/test_portfolio_truth_surface.py \
+            tests/test_thermal_core.py \
+            -q
 
-      - name: Lint (ruff)
+  blueprint-smoke:
+    name: Cross-platform blueprint smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install blueprint dependencies
+        run: python -m pip install --disable-pip-version-check ezdxf matplotlib
+
+      - name: Exercise stable root CLI
         run: |
-          pip install ruff
-          ruff check . --ignore E501
-        continue-on-error: true
-
-      - name: APEX status check
-        run: python apex_cli.py status
-
-      - name: Run tests
-        run: |
-          pytest tests/ -v --tb=short
-        continue-on-error: true
-
-      - name: Generate all blueprint formats
-        run: |
+          python apex_cli.py status
           python apex_cli.py blueprint --all --output /tmp/CCL-002-test
 
-      - name: Verify outputs exist
+      - name: Verify generated artifacts
         run: |
-          python -c "
-          import os
-          for ext in ['dxf', 'pdf', 'png']:
-              path = f'/tmp/CCL-002-test.{ext}'
-              size = os.path.getsize(path) if os.path.exists(path) else 0
-              status = 'OK' if size > 0 else 'MISSING'
-              print(f'[{ext.upper()}] {path} ({size} bytes) -- {status}')
-              assert size > 0, f'{ext} output missing or empty'
-          print('All blueprint formats validated.')
-          "
+          python - <<'PY'
+          from pathlib import Path
+
+          expected = [
+              Path("/tmp/CCL-002-test.dxf"),
+              Path("/tmp/CCL-002-test.pdf"),
+              Path("/tmp/CCL-002-test.svg"),
+              Path("/tmp/CCL-002-test.png"),
+          ]
+          missing = [str(path) for path in expected if not path.exists() or path.stat().st_size == 0]
+          if missing:
+              raise SystemExit(f"Missing or empty blueprint outputs: {missing}")
+          for path in expected:
+              print(f"verified {path} ({path.stat().st_size} bytes)")
+          PY
 
       - name: Upload blueprint artifacts
         uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: APEX-blueprints-CCL-002
+          name: cooling-blueprint-smoke
           path: |
             /tmp/CCL-002-test.dxf
             /tmp/CCL-002-test.pdf
+            /tmp/CCL-002-test.svg
             /tmp/CCL-002-test.png
-          retention-days: 30
+          retention-days: 14
