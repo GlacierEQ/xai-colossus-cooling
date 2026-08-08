@@ -99,48 +99,6 @@ class SupabaseTelemetryConnector:
         except Exception as e:
             logger.error(f'Supabase insert failed [{table}]: {e}')
 
+# Note: The Supabase table schema is maintained in database/supabase_schema.sql
 
-# Schema for Supabase setup
-SUPABASE_SCHEMA = """
--- Run this in your Supabase SQL editor to set up Colossus Cooling tables
 
-CREATE TABLE IF NOT EXISTS colossus_thermal_events (
-    id BIGSERIAL PRIMARY KEY,
-    node_id TEXT NOT NULL,
-    zone_id TEXT NOT NULL,
-    temp_celsius NUMERIC(5,2),
-    alert_level INTEGER DEFAULT 0,
-    timestamp TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS colossus_anomalies (
-    id BIGSERIAL PRIMARY KEY,
-    node_id TEXT NOT NULL,
-    deviation_celsius NUMERIC(5,2),
-    baseline_celsius NUMERIC(5,2),
-    severity TEXT DEFAULT 'LOW',
-    timestamp TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS colossus_piston_log (
-    id BIGSERIAL PRIMARY KEY,
-    piston TEXT NOT NULL,
-    tier TEXT NOT NULL,
-    trigger TEXT,
-    result_summary TEXT,
-    timestamp TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS colossus_emergency_log (
-    id BIGSERIAL PRIMARY KEY,
-    critical_node_count INTEGER,
-    max_temp_celsius NUMERIC(5,2),
-    nodes JSONB,
-    actions_taken JSONB,
-    timestamp TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Enable real-time on thermal events
-ALTER PUBLICATION supabase_realtime ADD TABLE colossus_thermal_events;
-ALTER PUBLICATION supabase_realtime ADD TABLE colossus_anomalies;
-"""
