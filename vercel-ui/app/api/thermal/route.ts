@@ -35,13 +35,16 @@ export async function GET(req: NextRequest) {
     zoneMap[row.zone_id].push(row.temp_celsius);
   });
 
-  const zones = Object.entries(zoneMap).map(([zone_id, temps]) => ({
-    zone_id,
-    avg_temp:   temps.reduce((a, b) => a + b, 0) / temps.length,
-    peak_temp:  Math.max(...temps),
-    node_count: temps.length,
-    status: Math.max(...temps) >= 85 ? 'critical' : Math.max(...temps) >= 78 ? 'hot' : Math.max(...temps) >= 70 ? 'warm' : 'nominal',
-  }));
+  const zones = Object.entries(zoneMap).map(([zone_id, temps]) => {
+    const peak_temp = Math.max(...temps);
+    return {
+      zone_id,
+      avg_temp:   temps.reduce((a, b) => a + b, 0) / temps.length,
+      peak_temp,
+      node_count: temps.length,
+      status: peak_temp >= 85 ? 'critical' : peak_temp >= 78 ? 'hot' : peak_temp >= 70 ? 'warm' : 'nominal',
+    };
+  });
 
   return NextResponse.json({ source: 'supabase', zones });
 }
