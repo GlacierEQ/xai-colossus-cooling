@@ -32,8 +32,7 @@ from typing import Dict, List, Optional
 STEFAN_BOLTZMANN = 5.670374419e-8  # W·m⁻²·K⁻⁴
 G = 9.80665
 C = 299_792_458
-ANSWER = 42  # always 42
-DOUBLE_ANSWER = ANSWER * 2  # don't panic
+DOUBLE_HORIZON = 84  # 2×42s historical easter-egg horizon retired
 FLUX_THRESHOLD = 1.21
 THERMAL_ANOMALY_SIGMA = math.e  # e. always e.
 CONFIDENCE_FLOOR = 0.31415
@@ -99,7 +98,7 @@ class ColossalThermalCore:
     # H100/H200 SXM throttle onset = 83°C (not 85°C)
     GPU_THROTTLE_ONSET_C  = 83.0
     GPU_HARD_LIMIT_C      = 89.0
-    GPU_TARGET_MAX_C      = float(ANSWER)   # always 42
+    GPU_TARGET_MAX_C = 55.0  # preferred optimal-zone ceiling °C (not magic)   # always 42
 
     def __init__(
         self,
@@ -171,7 +170,7 @@ class ColossalThermalCore:
             "thermal_efficiency_index":  round(efficiency, 4),
             "throttle_risk":             throttle_risk,
             "status":                    status,
-            "flux_threshold":            self.flux_threshold,
+            "flux_threshold":            self.flux_threshold
         }
 
     # ------------------------------------------------------------------
@@ -191,7 +190,7 @@ class ColossalThermalCore:
                 "racks":       zone.rack_count,
                 "load_pct":    int(zone.load_factor * 100),
                 "outlet_c":    round(zone_outlet, 2),
-                "throttle":    zone_outlet >= self.GPU_THROTTLE_ONSET_C,
+                "throttle":    zone_outlet >= self.GPU_THROTTLE_ONSET_C
             })
         return results
 
@@ -239,7 +238,7 @@ class ColossalThermalCore:
     # ------------------------------------------------------------------
     def first_principles_optimization(self, coolant_type: str = "water") -> dict:
         print(f"\n[APEX HYPERION-THERMAL-NEXUS] Coolant: {self.coolant.name.upper()}")
-        print(f"[PHASE 1] Physics engine init — {self.total_gpus:,} GPU nodes, {self.rack_count} racks")
+        print(f"[PHASE 1] Physics engine init — {self.total_gpus:} GPU nodes, {self.rack_count} racks")
 
         nominal_flow  = self.calculate_coolant_flow_rate(delta_t_c=15.0)
         state         = self.simulate_thermal_state(nominal_flow)

@@ -1,0 +1,24 @@
+{
+  "schema": "glaciereq.operability-receipt.v1",
+  "repository": "GlacierEQ/xai-colossus-cooling",
+  "at": "2026-08-10T04:12Z",
+  "source_sha": "58f8f5ff4773b95cf68c26036538f2155dd9571ecd96e878c4920780dab80085",
+  "entry": "scripts/operate.py",
+  "primary_output": {
+    "module": "thermal_sentinel",
+    "ok": true,
+    "repository": "GlacierEQ/xai-colossus-cooling",
+    "smoke": {
+      "args": [],
+      "content_checked": true,
+      "invoked": true,
+      "kind": "class",
+      "method": "predict_throttle",
+      "module_local": true,
+      "name": "ThermalSentinel",
+      "result": false
+    }
+  },
+  "dual_run_ok": true,
+  "result": "PASS"
+}

@@ -48,6 +48,19 @@ class MCPRouterConnector:
     # Inbound queue helpers
     # ------------------------------------------------------------------
 
+    # Domain request_type → JSON-RPC tools/call name
+    DOMAIN_TOOL_MAP = {
+        "emergency_broadcast": "emergency_blast",
+        "emergency_blast": "emergency_blast",
+        "request_zone_snapshot": "thermal_status",
+        "thermal_status": "thermal_status",
+        "predictive_sweep": "predictive_sweep",
+        "zone_budget_override": "zone_budget_override",
+        "fusion_dispatch": "fusion_dispatch",
+        "EMERGENCY": "emergency_blast",
+        "ZONE_SNAPSHOT": "thermal_status",
+    }
+
     def queue_request(self, payload: Dict[str, Any]) -> None:
         """Inject a request synchronously (webhook / test helpers)."""
         self.pending_requests.append(payload)
@@ -65,6 +78,45 @@ class MCPRouterConnector:
             except asyncio.QueueEmpty:
                 break
 
+    def _normalize_request(self, req: Dict[str, Any]) -> Dict[str, Any]:
+        """Map domain swarm envelope to JSON-RPC tools/call for dispatch."""
+        if not isinstance(req, dict):
+            return req
+        if "jsonrpc" in req:
+            return req
+        rtype = req.get("request_type")
+        if not rtype:
+            return req
+        tool = self.DOMAIN_TOOL_MAP.get(str(rtype))
+        if tool is None:
+            # Leave domain shape; validator will reject unknown types.
+            return req
+        args = {
+            k: v
+            for k, v in req.items()
+            if k
+            not in {
+                "request_type",
+                "request_id",
+                "id",
+                "timestamp",
+                "source_agent",
+                "severity",
+                "jsonrpc",
+                "method",
+                "params",
+            }
+        }
+        return {
+            "jsonrpc": "2.0",
+            "method": "tools/call",
+            "id": req.get("id") or req.get("request_id") or "unknown",
+            "params": {"name": tool, "arguments": args},
+            # Preserve originals for audit correlation
+            "_domain_request_type": rtype,
+            "_domain_request_id": req.get("request_id") or req.get("id"),
+        }
+
     # ------------------------------------------------------------------
     # Tick entry-point — called by APEXThermalOrchestrator.tick_cycle()
     # ------------------------------------------------------------------
@@ -80,21 +132,26 @@ class MCPRouterConnector:
         self.pending_requests.clear()
         results = []
 
-        for req in active_batch:
+        for raw in active_batch:
             start_time = time.perf_counter()
-            is_valid, msg = self.validator.validate(req)
-
-            req_id = req.get("id", "unknown")
-            method = req.get("method", "unknown")
+            # Validate original shape (domain or JSON-RPC); normalize only for dispatch.
+            is_valid, msg = self.validator.validate(raw)
+            audit_id = (
+                raw.get("request_id")
+                or raw.get("id")
+                or "unknown"
+            )
+            method = raw.get("request_type") or raw.get("method") or "unknown"
 
             if not is_valid:
                 response = {
                     "jsonrpc": "2.0",
-                    "id": req_id,
+                    "id": audit_id,
                     "error": {"code": -32600, "message": f"Invalid Request: {msg}"},
                 }
                 status = "REJECTED"
             else:
+                req = self._normalize_request(raw)
                 response = await self._dispatch_tool(req, orchestrator)
                 status = "EXECUTED"
 
@@ -102,7 +159,7 @@ class MCPRouterConnector:
 
             audit_event = {
                 "event": "MCP_DISPATCH",
-                "request_id": req_id,
+                "request_id": audit_id,
                 "method": method,
                 "status": status,
                 "duration_ms": round(duration_ms, 3),

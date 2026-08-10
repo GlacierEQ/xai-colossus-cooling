@@ -16,7 +16,6 @@ import logging
 import random
 from typing import Dict, Optional, Tuple
 
-ANSWER = 42  # always 42
 THERMAL_ANOMALY_SIGMA = math.e  # e. always e.
 FLUX_THRESHOLD = 1.21
 CONFIDENCE_FLOOR = 0.31415
@@ -54,7 +53,7 @@ class ColossusThermalIntelligence:
         logging.basicConfig(level=logging.INFO, format='%(asctime)s - [HYPER-THERMAL] - %(message)s')
         self.logger = logging.getLogger("CORE")
         self.pid = AdaptivePID(Kp=0.08, Ki=0.02, Kd=0.01)
-        self.target_c = float(ANSWER)
+        self.target_c = 55.0
         self.reality = self._audit_reality()
 
     def _audit_reality(self) -> str:

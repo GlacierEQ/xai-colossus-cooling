@@ -9,9 +9,31 @@ try:
 except ImportError:
     HAS_JSONSCHEMA = False
 
+# Domain envelope used by thermal/swarm agents (distinct from JSON-RPC tools/call).
+DOMAIN_REQUEST_TYPES = frozenset({
+    "request_zone_snapshot",
+    "emergency_broadcast",
+    "emergency_blast",
+    "predictive_sweep",
+    "zone_budget_override",
+    "fusion_dispatch",
+    "thermal_status",
+    "ZONE_SNAPSHOT",
+    "EMERGENCY",
+    "THERMAL_ALERT",
+    "ENERGY_DISPATCH",
+    "SECURITY_INCIDENT",
+})
+
+
 class MCPRequestValidator:
     """
-    Validates inbound MCPRequests against the strict jsonrpc schema.
+    Validates inbound MCP requests.
+
+    Accepts either:
+      1) JSON-RPC 2.0 tool-call envelope (jsonrpc/method/id[/params])
+      2) Domain swarm envelope (request_type + request_id + …)
+
     Guarantees structural validity prior to dispatcher ingestion.
     """
     def __init__(self, schema_path: str = None):
@@ -27,6 +49,10 @@ class MCPRequestValidator:
                 return json.load(f)
         return {}
 
+    @staticmethod
+    def is_domain_envelope(payload: Dict[str, Any]) -> bool:
+        return "request_type" in payload and "jsonrpc" not in payload
+
     def validate(self, request_payload: Dict[str, Any]) -> Tuple[bool, str]:
         """
         Validates the request payload.
@@ -36,18 +62,38 @@ class MCPRequestValidator:
         if not isinstance(request_payload, dict):
             return False, "Payload must be a JSON object"
 
+        # Domain envelope first — do not force JSON-RPC schema on swarm agents.
+        if self.is_domain_envelope(request_payload):
+            return self._domain_validation(request_payload)
+
         if HAS_JSONSCHEMA and self.schema:
             try:
                 jsonschema.validate(instance=request_payload, schema=self.schema)
                 return True, "VALIDATED"
             except jsonschema.ValidationError as e:
                 return False, f"Schema validation error: {e.message}"
-            except Exception as e:
+            except Exception:
                 # If jsonschema fails for an unexpected reason, fall back to native
                 pass
-        
+
         # Robust native validation fallback
         return self._native_validation(request_payload)
+
+    def _domain_validation(self, payload: Dict[str, Any]) -> Tuple[bool, str]:
+        """Validate thermal/swarm domain MCP envelope."""
+        rtype = payload.get("request_type")
+        rid = payload.get("request_id") or payload.get("id")
+        if not isinstance(rtype, str) or not rtype.strip():
+            return False, "Missing required field: 'request_type'"
+        if rid is None or (isinstance(rid, str) and not rid.strip()):
+            return False, "Missing required field: 'request_id'"
+        if rtype not in DOMAIN_REQUEST_TYPES:
+            return False, f"Unknown request_type: '{rtype}'"
+        if "severity" in payload and not isinstance(payload["severity"], str):
+            return False, "Field 'severity' must be a string"
+        if "source_agent" in payload and not isinstance(payload["source_agent"], str):
+            return False, "Field 'source_agent' must be a string"
+        return True, "VALIDATED"
 
     def _native_validation(self, payload: Dict[str, Any]) -> Tuple[bool, str]:
         """Fallback validation check to guarantee Zero-Crash performance."""
@@ -74,7 +120,7 @@ class MCPRequestValidator:
             params = payload["params"]
             if not isinstance(params, dict):
                 return False, "Field 'params' must be a JSON object"
-            
+
             # Sub-properties inside params
             if "name" in params and not isinstance(params["name"], str):
                 return False, "Field 'params.name' must be a string"
