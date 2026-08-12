@@ -1,22 +1,10 @@
 #!/usr/bin/env python3
+"""Canonical domain-envelope validation for APEX MCP swarm requests.
+
+Every domain request must satisfy ``schemas/mcp_request.json`` before dispatch.
+Validation is a correctness boundary, not an optional enhancement: if the schema
+engine or schema itself is unavailable, the request is refused.
 """
-apex_core/mcp_validator.py
-==========================
-Issue #17 — MCP Schema JSON Validation on Inbound Requests
-
-Every MCPRequest MUST pass validate_mcp_request() before the MCP router
-dispatches it to any agent. Malformed requests return a structured ERROR
-response and are never silently dropped.
-
-Usage:
-    from apex_core.mcp_validator import validate_mcp_request, ValidationError
-
-    result = validate_mcp_request(raw_dict)
-    if result.get("status") == "ERROR":
-        return result  # already structured for the caller
-    # else proceed with dispatch
-"""
-
 from __future__ import annotations
 
 import json
@@ -25,11 +13,6 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 logger = logging.getLogger("APEX-MCP-VALIDATOR")
-
-# --------------------------------------------------------------------------- #
-# Schema loading — resolved relative to this file so it works regardless of   #
-# the working directory.                                                        #
-# --------------------------------------------------------------------------- #
 _SCHEMA_PATH = Path(__file__).parent.parent / "schemas" / "mcp_request.json"
 _SCHEMA: Optional[Dict[str, Any]] = None
 
@@ -37,48 +20,41 @@ _SCHEMA: Optional[Dict[str, Any]] = None
 def _load_schema() -> Dict[str, Any]:
     global _SCHEMA
     if _SCHEMA is None:
-        with open(_SCHEMA_PATH, "r", encoding="utf-8") as f:
-            _SCHEMA = json.load(f)
+        try:
+            with open(_SCHEMA_PATH, "r", encoding="utf-8") as handle:
+                value = json.load(handle)
+        except Exception as exc:
+            raise ValidationError(f"schema unavailable: {exc}") from exc
+        if not isinstance(value, dict) or not value:
+            raise ValidationError("schema unavailable: empty or invalid schema")
+        _SCHEMA = value
     return _SCHEMA
 
 
-# --------------------------------------------------------------------------- #
-# Public API                                                                   #
-# --------------------------------------------------------------------------- #
-
 class ValidationError(ValueError):
-    """Raised when an MCPRequest fails schema validation."""
+    """Raised when an MCP domain request cannot be proven valid."""
+
     def __init__(self, reason: str):
         super().__init__(reason)
         self.reason = reason
 
 
 def validate_mcp_request(request: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Validate *request* against schemas/mcp_request.json.
+    """Validate a canonical domain request and return the original dict."""
+    if not isinstance(request, dict):
+        raise ValidationError("[<root>] request must be a JSON object")
 
-    Returns:
-        The original request dict if valid (pass-through for chaining).
-
-    Raises:
-        ValidationError: with a human-readable reason string if invalid.
-    """
     try:
-        import jsonschema  # soft dependency — only needed at validation time
-    except ImportError:
-        logger.warning(
-            "jsonschema not installed — MCP validation SKIPPED. "
-            "Add 'jsonschema>=4.0' to requirements.txt."
-        )
-        return request
+        import jsonschema
+    except ImportError as exc:
+        raise ValidationError("jsonschema dependency unavailable") from exc
 
     schema = _load_schema()
-    validator = jsonschema.Draft7Validator(schema)
-    errors = sorted(validator.iter_errors(request), key=lambda e: list(e.path))
-
+    validator = jsonschema.Draft7Validator(schema, format_checker=jsonschema.FormatChecker())
+    errors = sorted(validator.iter_errors(request), key=lambda error: list(error.path))
     if errors:
         primary = errors[0]
-        path = " -> ".join(str(p) for p in primary.absolute_path) or "<root>"
+        path = " -> ".join(str(part) for part in primary.absolute_path) or "<root>"
         reason = f"[{path}] {primary.message}"
         if len(errors) > 1:
             reason += f" (+ {len(errors) - 1} more error(s))"
@@ -94,16 +70,7 @@ def validate_mcp_request(request: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def safe_validate(request: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Non-raising wrapper. Returns a structured error dict instead of raising.
-
-    Callers that need to return a response to the agent (rather than propagate
-    an exception) should use this variant.
-
-    Returns:
-        Original request dict on success.
-        {"status": "ERROR", "reason": "...", "request_id": ...} on failure.
-    """
+    """Return a structured error receipt instead of propagating validation failure."""
     try:
         return validate_mcp_request(request)
     except ValidationError as exc:
@@ -112,7 +79,7 @@ def safe_validate(request: Dict[str, Any]) -> Dict[str, Any]:
             "reason": exc.reason,
             "request_id": request.get("request_id") if isinstance(request, dict) else None,
         }
-    except Exception as exc:  # schema load failure, etc.
+    except Exception as exc:
         logger.exception("Unexpected error during MCP validation")
         return {
             "status": "ERROR",
