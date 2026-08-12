@@ -80,9 +80,7 @@ class TestSUPERNOVAPistonGauntlet:
         piston = SUPERNOVAPiston(DEFAULT_THRESHOLDS, DEFAULT_TICK_CFG)
         temps = [95.0, 96.5, 97.0, 98.2, 100.0]
         nodes = [_node(f'G{i}', t) for i, t in enumerate(temps)]
-        result = asyncio.get_event_loop().run_until_complete(
-            piston.execute({'critical_nodes': nodes, 'trigger': 'GAUNTLET'})
-        )
+        result = asyncio.run(piston.execute({'critical_nodes': nodes, 'trigger': 'GAUNTLET'}))
         assert result['emergency_actions'] == len(temps)
         for action in result['actions']:
             assert action['action'] == 'EMERGENCY_FULL_BLAST'
@@ -92,51 +90,39 @@ class TestSUPERNOVAPistonGauntlet:
     def test_gpu_throttle_above_90c(self):
         piston = SUPERNOVAPiston(DEFAULT_THRESHOLDS, DEFAULT_TICK_CFG)
         nodes = [_node('TH-A', 91.0), _node('TH-B', 95.0), _node('TH-C', 90.0)]
-        result = asyncio.get_event_loop().run_until_complete(
-            piston.execute({'critical_nodes': nodes, 'trigger': 'GAUNTLET'})
-        )
+        result = asyncio.run(piston.execute({'critical_nodes': nodes, 'trigger': 'GAUNTLET'}))
         for action in result['actions']:
             assert action['throttle_gpu'] is True
 
     def test_no_throttle_below_90c(self):
         piston = SUPERNOVAPiston(DEFAULT_THRESHOLDS, DEFAULT_TICK_CFG)
         nodes = [_node('NT-A', 86.0), _node('NT-B', 89.9)]
-        result = asyncio.get_event_loop().run_until_complete(
-            piston.execute({'critical_nodes': nodes, 'trigger': 'GAUNTLET'})
-        )
+        result = asyncio.run(piston.execute({'critical_nodes': nodes, 'trigger': 'GAUNTLET'}))
         for action in result['actions']:
             assert action['throttle_gpu'] is False
 
     def test_empty_critical_list(self):
         piston = SUPERNOVAPiston(DEFAULT_THRESHOLDS, DEFAULT_TICK_CFG)
-        result = asyncio.get_event_loop().run_until_complete(
-            piston.execute({'critical_nodes': [], 'trigger': 'GAUNTLET'})
-        )
+        result = asyncio.run(piston.execute({'critical_nodes': [], 'trigger': 'GAUNTLET'}))
         assert result['emergency_actions'] == 0
         assert result['actions'] == []
 
     def test_boundary_90c_exact_triggers_throttle(self):
         piston = SUPERNOVAPiston(DEFAULT_THRESHOLDS, DEFAULT_TICK_CFG)
         nodes = [_node('BD-90', 90.0)]
-        result = asyncio.get_event_loop().run_until_complete(
-            piston.execute({'critical_nodes': nodes, 'trigger': 'GAUNTLET'})
-        )
+        result = asyncio.run(piston.execute({'critical_nodes': nodes, 'trigger': 'GAUNTLET'}))
         assert result['actions'][0]['throttle_gpu'] is True
 
     def test_boundary_89c_no_throttle(self):
         piston = SUPERNOVAPiston(DEFAULT_THRESHOLDS, DEFAULT_TICK_CFG)
         nodes = [_node('BD-89', 89.0)]
-        result = asyncio.get_event_loop().run_until_complete(
-            piston.execute({'critical_nodes': nodes, 'trigger': 'GAUNTLET'})
-        )
+        result = asyncio.run(piston.execute({'critical_nodes': nodes, 'trigger': 'GAUNTLET'}))
         assert result['actions'][0]['throttle_gpu'] is False
 
     def test_sustained_100c_does_not_crash(self):
         piston = SUPERNOVAPiston(DEFAULT_THRESHOLDS, DEFAULT_TICK_CFG)
         nodes = [_node(f'S-{i}', 100.0) for i in range(50)]
-        result = asyncio.get_event_loop().run_until_complete(
-            piston.execute({'critical_nodes': nodes, 'trigger': 'GAUNTLET'})
-        )
+        result = asyncio.run(piston.execute({'critical_nodes': nodes, 'trigger': 'GAUNTLET'}))
         assert result['emergency_actions'] == 50
         assert all(a['action'] == 'EMERGENCY_FULL_BLAST' for a in result['actions'])
 
