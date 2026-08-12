@@ -1,6 +1,7 @@
 """Immersion cooling — microfluidic efficiency uses real heat-transfer math."""
 from __future__ import annotations
 
+import asyncio
 import sys
 from pathlib import Path
 
@@ -22,14 +23,9 @@ def test_positive_flow_bounded_efficiency():
 
 
 def test_boiling_cycle_marks_onset():
-    import asyncio
-
     eng = ImmersionCoolingEngine(tank_count=2)
-    # Force tanks near boiling
-    for t in eng.tanks:
-        t.coolant_temp_c = 60.5
-    reports = asyncio.get_event_loop().run_until_complete(
-        eng.simulate_boiling_cycle(load_factor=2.0)
-    )
+    for tank in eng.tanks:
+        tank.coolant_temp_c = 60.5
+    reports = asyncio.run(eng.simulate_boiling_cycle(load_factor=2.0))
     assert len(reports) == 2
-    assert any(r["status"] in ("BOILING_ACTIVE", "STABLE") for r in reports)
+    assert any(report["status"] in ("BOILING_ACTIVE", "STABLE") for report in reports)
