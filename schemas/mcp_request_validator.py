@@ -1,90 +1,99 @@
+"""Inbound MCP request validator for the APEX router.
+
+The router accepts two intentionally different wire shapes:
+1. canonical APEX domain envelopes defined by ``mcp_request.json``; and
+2. JSON-RPC 2.0 MCP calls used by direct tool clients.
+
+A request must satisfy the contract for the shape it actually uses. Validation
+never falls open because a dependency is missing.
+"""
+from __future__ import annotations
+
 import json
 import os
-from typing import Dict, Any, Tuple
+from typing import Any, Dict, Tuple
 
-# Attempt to load standard jsonschema library, fallback to native if not present
 try:
     import jsonschema
-    HAS_JSONSCHEMA = True
-except ImportError:
-    HAS_JSONSCHEMA = False
+except ImportError:  # pragma: no cover - exercised by fail-closed branch in minimal envs
+    jsonschema = None
+
+
+JSONRPC_METHODS = frozenset({"tools/call", "tools/list"})
+
 
 class MCPRequestValidator:
-    """
-    Validates inbound MCPRequests against the strict jsonrpc schema.
-    Guarantees structural validity prior to dispatcher ingestion.
-    """
-    def __init__(self, schema_path: str = None):
+    """Validate domain envelopes and JSON-RPC MCP requests before dispatch."""
+
+    def __init__(self, schema_path: str | None = None):
         self.schema_path = schema_path or os.path.join(
             os.path.dirname(__file__), "mcp_request.json"
         )
         self.schema = self._load_schema()
 
     def _load_schema(self) -> Dict[str, Any]:
-        """Load the JSON schema from file."""
-        if os.path.exists(self.schema_path):
-            with open(self.schema_path, "r") as f:
-                return json.load(f)
-        return {}
+        if not os.path.exists(self.schema_path):
+            raise FileNotFoundError(f"MCP domain schema not found: {self.schema_path}")
+        with open(self.schema_path, "r", encoding="utf-8") as handle:
+            value = json.load(handle)
+        if not isinstance(value, dict) or not value:
+            raise ValueError("MCP domain schema must be a non-empty JSON object")
+        return value
 
     def validate(self, request_payload: Dict[str, Any]) -> Tuple[bool, str]:
-        """
-        Validates the request payload.
-        Returns:
-            Tuple[bool, str]: (isValid, errorMessage)
-        """
         if not isinstance(request_payload, dict):
             return False, "Payload must be a JSON object"
 
-        if HAS_JSONSCHEMA and self.schema:
-            try:
-                jsonschema.validate(instance=request_payload, schema=self.schema)
-                return True, "VALIDATED"
-            except jsonschema.ValidationError as e:
-                return False, f"Schema validation error: {e.message}"
-            except Exception as e:
-                # If jsonschema fails for an unexpected reason, fall back to native
-                pass
-        
-        # Robust native validation fallback
-        return self._native_validation(request_payload)
+        if "jsonrpc" in request_payload:
+            return self._validate_jsonrpc(request_payload)
+        if "request_type" in request_payload:
+            return self._validate_domain(request_payload)
+        return False, "Payload is neither a canonical domain envelope nor JSON-RPC request"
 
-    def _native_validation(self, payload: Dict[str, Any]) -> Tuple[bool, str]:
-        """Fallback validation check to guarantee Zero-Crash performance."""
-        # 1. Check required fields
-        required_keys = ["jsonrpc", "method", "id"]
-        for key in required_keys:
+    def _validate_domain(self, payload: Dict[str, Any]) -> Tuple[bool, str]:
+        if jsonschema is None:
+            return False, "jsonschema dependency unavailable; domain request refused"
+        try:
+            validator = jsonschema.Draft7Validator(
+                self.schema,
+                format_checker=jsonschema.FormatChecker(),
+            )
+            errors = sorted(validator.iter_errors(payload), key=lambda error: list(error.path))
+        except Exception as exc:
+            return False, f"Domain schema validation unavailable: {exc}"
+        if errors:
+            primary = errors[0]
+            path = " -> ".join(str(part) for part in primary.absolute_path) or "<root>"
+            return False, f"Schema validation error [{path}]: {primary.message}"
+        return True, "VALIDATED"
+
+    def _validate_jsonrpc(self, payload: Dict[str, Any]) -> Tuple[bool, str]:
+        required = ("jsonrpc", "method", "id")
+        for key in required:
             if key not in payload:
                 return False, f"Missing required field: '{key}'"
-
-        # 2. Validate jsonrpc version
         if payload["jsonrpc"] != "2.0":
             return False, "Field 'jsonrpc' must be exactly '2.0'"
-
-        # 3. Validate method type
-        if not isinstance(payload["method"], str) or len(payload["method"].strip()) == 0:
-            return False, "Field 'method' must be a non-empty string"
-
-        # 4. Validate id type
-        if not isinstance(payload["id"], (str, int)):
+        if not isinstance(payload["id"], (str, int)) or isinstance(payload["id"], bool):
             return False, "Field 'id' must be a string or integer"
+        method = payload["method"]
+        if not isinstance(method, str) or method not in JSONRPC_METHODS:
+            return False, f"Unsupported JSON-RPC MCP method: {method!r}"
 
-        # 5. Validate params block
-        if "params" in payload:
-            params = payload["params"]
-            if not isinstance(params, dict):
-                return False, "Field 'params' must be a JSON object"
-            
-            # Sub-properties inside params
-            if "name" in params and not isinstance(params["name"], str):
-                return False, "Field 'params.name' must be a string"
-            if "arguments" in params and not isinstance(params["arguments"], dict):
-                return False, "Field 'params.arguments' must be a JSON object"
-
-        # 6. Reject unknown top-level keys
         allowed_keys = {"jsonrpc", "method", "id", "params"}
-        for key in payload.keys():
-            if key not in allowed_keys:
-                return False, f"Unknown top-level field detected: '{key}'"
+        unknown = sorted(set(payload) - allowed_keys)
+        if unknown:
+            return False, f"Unknown top-level field detected: '{unknown[0]}'"
 
+        params = payload.get("params", {})
+        if not isinstance(params, dict):
+            return False, "Field 'params' must be a JSON object"
+
+        if method == "tools/call":
+            name = params.get("name")
+            arguments = params.get("arguments", {})
+            if not isinstance(name, str) or not name.strip():
+                return False, "Field 'params.name' must be a non-empty string for tools/call"
+            if not isinstance(arguments, dict):
+                return False, "Field 'params.arguments' must be a JSON object"
         return True, "VALIDATED"
