@@ -268,6 +268,19 @@ class TestRackCell:
         assert abs(rack.delta_t - 15.0) < 0.01
 
 
+# ── Orchestrator construction ────────────────────────────────────────────────
+
+
+def test_default_constructor_keeps_background_services_off():
+    orch = APEXThermalOrchestrator(
+        mode=CoolingMode.COLOSSUS,
+        manifest=MINIMAL_MANIFEST,
+    )
+
+    assert orch.aspen_logger is None
+    assert orch._mcp_router is None
+
+
 # ── Orchestrator integration ──────────────────────────────────────────────────
 
 class TestOrchestratorIntegration:
