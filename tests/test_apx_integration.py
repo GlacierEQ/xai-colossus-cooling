@@ -129,7 +129,7 @@ class TestMCPRouterIntegration(unittest.IsolatedAsyncioTestCase):
         from apex_core.thermal_orchestrator import APEXThermalOrchestrator, CoolingZone, ThermalNode
         
         # 1. Initialize orchestrator and clean existing log
-        orch = APEXThermalOrchestrator(start_background_services=True)
+        orch = APEXThermalOrchestrator()
         if os.path.exists(orch.aspen_logger.log_path):
             os.remove(orch.aspen_logger.log_path)
             

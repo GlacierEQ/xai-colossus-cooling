@@ -289,12 +289,7 @@ class APEXThermalOrchestrator:
     VERSION  = '1.2.0-COLOSSUS'
     CODENAME = 'GLACIER-THERMAL'
 
-    def __init__(
-        self,
-        mode: CoolingMode = CoolingMode.COLOSSUS,
-        manifest: dict = None,
-        start_background_services: bool = False,
-    ):
+    def __init__(self, mode: CoolingMode = CoolingMode.COLOSSUS, manifest: dict = None):
         self.mode = mode
         self.manifest = manifest or load_manifest()
         self.thresholds = self.manifest.get('thermal_thresholds', {})
@@ -327,12 +322,12 @@ class APEXThermalOrchestrator:
             for fm in self.manifest.get('fusion_modes', [])
         }
 
-        # Background audit and router services are explicitly opt-in. The local
-        # thermal core remains constructible outside a running event loop.
-        self.aspen_logger = None
-        self._mcp_router = None
-        if start_background_services:
-            self._start_background_services()
+        # Wire MCP Router & Aspen Grove Logger
+        from memory.aspen_grove_logger import AspenGroveLogger
+        from connectors.mcp_router import MCPRouterConnector
+        self.aspen_logger = AspenGroveLogger()
+        self.aspen_logger.start()
+        self._mcp_router = MCPRouterConnector(logger=self.aspen_logger)
 
         self._telemetry = None
         self._aspen = None
@@ -351,19 +346,6 @@ class APEXThermalOrchestrator:
 
         self.logger.info(f'APEX Thermal Orchestrator v{self.VERSION} [{self.CODENAME}] INITIALIZED')
         self.logger.info(f'Mode: {self.mode.value} | Pistons loaded: {len(self.pistons)} | Fusion modes: {len(self._fusion_defs)}')
-
-    # ------------------------------------------------------------------
-    # Optional background services
-    # ------------------------------------------------------------------
-
-    def _start_background_services(self) -> None:
-        """Start audit and router services inside an active event loop only."""
-        from memory.aspen_grove_logger import AspenGroveLogger
-        from connectors.mcp_router import MCPRouterConnector
-
-        self.aspen_logger = AspenGroveLogger()
-        self.aspen_logger.start()
-        self._mcp_router = MCPRouterConnector(logger=self.aspen_logger)
 
     # ------------------------------------------------------------------
     # Connector init
@@ -630,10 +612,7 @@ class APEXThermalOrchestrator:
 
 
 async def main():
-    orchestrator = APEXThermalOrchestrator(
-        mode=CoolingMode.COLOSSUS,
-        start_background_services=True,
-    )
+    orchestrator = APEXThermalOrchestrator(mode=CoolingMode.COLOSSUS)
     for zi in range(3):
         zone = CoolingZone(zone_id=f'ZONE-{["A","B","C"][zi]}', zone_name=f'Colossus Zone {zi}')
         for ni in range(10):
