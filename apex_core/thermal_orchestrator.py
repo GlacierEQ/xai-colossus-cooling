@@ -25,7 +25,6 @@ import asyncio
 import json
 import logging
 import os
-import random
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -342,6 +341,8 @@ class APEXThermalOrchestrator:
 
         self._fabric = None
         self._hydra  = None
+        self._last_fabric_diagnostic = None
+        self._last_security_analysis = None
         self._init_phase4()
 
         self.logger.info(f'APEX Thermal Orchestrator v{self.VERSION} [{self.CODENAME}] INITIALIZED')
@@ -407,13 +408,21 @@ class APEXThermalOrchestrator:
 
     def _init_phase4(self):
         try:
-            from xai_colossus_servers.exa_brick.fabric_orchestrator import ExaBrickFabric
-            from xai_colossus_security.hydra_core.hydra_engine import HydraCore
-            self._fabric = ExaBrickFabric(rack_count=self.manifest.get('rack_count', 128))
-            self._hydra  = HydraCore()
-            self.logger.info('PHASE 4: Exascale Fabric & Hydra Security ONLINE.')
+            from xai_colossus_servers import ColossusServerAdapter
+            from xai_colossus_security import ColossusSecurityAdapter
+
+            self._fabric = ColossusServerAdapter(
+                rack_count=self.manifest.get('rack_count', 128),
+                rack_capacity_kw=self.manifest.get('rack_capacity_kw', 80.0),
+            )
+            self._hydra = ColossusSecurityAdapter()
+            self.logger.info(
+                'PHASE 4: declared-capacity fabric & HydraImmune security ONLINE.'
+            )
         except Exception as e:
-            self.logger.warning(f'Phase 4 initialization failed (sibling repos not mounted): {e}')
+            self.logger.warning(
+                f'Phase 4 initialization failed (sibling packages unavailable): {e}'
+            )
 
     # ------------------------------------------------------------------
     # v1.2: Connector refresh helpers  (called once per refresh_interval ticks)
@@ -537,12 +546,22 @@ class APEXThermalOrchestrator:
 
         # Phase 4: Fabric diagnostic (manifest-driven cadence)
         if self._fabric and self.tick % fabric_interval == 0:
-            await self._fabric.run_nccl_diagnostic('Main-Backbone')
+            self._last_fabric_diagnostic = await self._fabric.run_nccl_diagnostic(
+                'Main-Backbone'
+            )
 
-        # Phase 4: Hydra traffic entropy
+        # Phase 4: HydraImmune receives structural traffic evidence only. Thermal
+        # state is not silently reinterpreted as a security incident; a separate
+        # composition caller must declare suspicious_activity explicitly.
         if self._hydra:
-            mock_traffic = [{'node_id': n.node_id, 'entropy': random.random()} for n in self.all_nodes[:10]]
-            await self._hydra.analyze_traffic_patterns(mock_traffic)
+            traffic_evidence = [
+                {'node_id': node.node_id, 'zone_id': node.zone_id}
+                for node in self.all_nodes[:10]
+            ]
+            self._last_security_analysis = await self._hydra.analyze_traffic_patterns(
+                traffic_evidence,
+                tick_num=self.tick,
+            )
 
         # Process MCP Router tick loop
         if self._mcp_router:
