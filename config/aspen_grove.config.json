@@ -1,0 +1,50 @@
+{
+  "mem0": {
+    "api_key": "${MEM0_API_KEY}",
+    "org_id": "org_Gsa76AGniLIDLWGIgbmljwb7GCdPoExd3ERGKVkm",
+    "user_id": "OPERATOR",
+    "retention_days": 30,
+    "purpose": "Permanent evidence vault for case 1FDV-23-0001009"
+  },
+  "supermemory": {
+    "api_key": "${SUPERMEMORY_API_KEY}",
+    "ttl_seconds": 86400,
+    "cache_size_mb": 512,
+    "recall_target_ms": 300,
+    "purpose": "Hot cache for live thermal metrics"
+  },
+  "pinecone": {
+    "api_key": "${PINECONE_API_KEY}",
+    "index_name": "xai-colossus-thermal-vectors",
+    "dimension": 1536,
+    "metric": "cosine",
+    "pod_type": "s1.x1",
+    "purpose": "Semantic search for historical thermal patterns"
+  },
+  "neo4j": {
+    "uri": "${NEO4J_URI}",
+    "username": "${NEO4J_USER}",
+    "password": "${NEO4J_PASSWORD}",
+    "database": "aspen_grove",
+    "purpose": "Graph topology: Colossus cluster + case actors"
+  },
+  "supabase": {
+    "project_url": "${SUPABASE_URL}",
+    "api_key": "${SUPABASE_ANON_KEY}",
+    "table": "aspen_grove_audit_trail",
+    "write_once": true,
+    "purpose": "Immutable audit log for chain-of-custody"
+  },
+  "wave1": {
+    "sk079_endpoint": "${COLOSSUS_REDFISH_API}",
+    "sk082_model": "text-embedding-3-large",
+    "sk087_signer": "aspen_grove_v7",
+    "poll_interval_seconds": 60
+  },
+  "notion_bridge": {
+    "page_id": "aspen_grove_state_cache",
+    "database_id": "thermal_command_center",
+    "sync_interval_seconds": 300,
+    "token_savings_target_percent": 90
+  }
+}
