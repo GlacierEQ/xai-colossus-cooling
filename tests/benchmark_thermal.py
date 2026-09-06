@@ -10,19 +10,18 @@ Run:
     pytest tests/benchmark_thermal.py -v --benchmark-only  # with pytest-benchmark
 """
 
-import math
 import pytest
 
 
 # ─────────────────────────────────────────────────────────────
 # CONSTANTS (ASHRAE + SI)
 # ─────────────────────────────────────────────────────────────
-WATER_SPECIFIC_HEAT   = 4184.0   # J/(kg·K) at 25°C
-WATER_DENSITY         = 997.0    # kg/m³ at 25°C
-AIR_SPECIFIC_HEAT     = 1005.0   # J/(kg·K) dry air
-STEFAN_BOLTZMANN      = 5.67e-8  # W/(m²·K⁴)
-ABSOLUTE_ZERO         = 273.15   # °C → K offset
-TOLERANCE             = 0.02     # 2% tolerance on all assertions
+WATER_SPECIFIC_HEAT = 4184.0  # J/(kg·K) at 25°C
+WATER_DENSITY = 997.0  # kg/m³ at 25°C
+AIR_SPECIFIC_HEAT = 1005.0  # J/(kg·K) dry air
+STEFAN_BOLTZMANN = 5.67e-8  # W/(m²·K⁴)
+ABSOLUTE_ZERO = 273.15  # °C → K offset
+TOLERANCE = 0.02  # 2% tolerance on all assertions
 
 
 def approx(expected, actual, tol=TOLERANCE):
@@ -36,14 +35,17 @@ def approx(expected, actual, tol=TOLERANCE):
 # PHYSICS CALCULATIONS (mirrors xai-cooling-physics-core.py)
 # ─────────────────────────────────────────────────────────────
 
+
 def nusselt_dittus_boelter(Re: float, Pr: float, heating: bool = True) -> float:
     """Dittus-Boelter correlation: Nu = 0.023 * Re^0.8 * Pr^n
     n = 0.4 (heating fluid), 0.3 (cooling fluid)"""
     n = 0.4 if heating else 0.3
-    return 0.023 * (Re ** 0.8) * (Pr ** n)
+    return 0.023 * (Re**0.8) * (Pr**n)
 
 
-def reynolds_number(velocity: float, diameter: float, kinematic_viscosity: float) -> float:
+def reynolds_number(
+    velocity: float, diameter: float, kinematic_viscosity: float
+) -> float:
     return velocity * diameter / kinematic_viscosity
 
 
@@ -67,7 +69,9 @@ def exergy_destruction(T_env_k: float, entropy_gen: float) -> float:
     return T_env_k * entropy_gen
 
 
-def entropy_generation_heat_transfer(Q: float, T_hot_k: float, T_cold_k: float) -> float:
+def entropy_generation_heat_transfer(
+    Q: float, T_hot_k: float, T_cold_k: float
+) -> float:
     """Clausius inequality: Ṡ_gen = Q(1/T_cold - 1/T_hot)  [W/K]"""
     return Q * (1.0 / T_cold_k - 1.0 / T_hot_k)
 
@@ -81,13 +85,16 @@ def cooling_tower_approach(wet_bulb_c: float, leaving_water_c: float) -> float:
 # TEST CLASS: NUSSELT / REYNOLDS
 # ─────────────────────────────────────────────────────────────
 
+
 class TestHeatTransferCorrelations:
     """Validate Dittus-Boelter against published textbook values (Incropera, 7th ed.)"""
 
     def test_nusselt_turbulent_water_typical(self):
         """Re=50,000 Pr=7.0 → Nu ≈ 248 (Incropera Table 8.1 range)"""
         Nu = nusselt_dittus_boelter(Re=50_000, Pr=7.0, heating=True)
-        assert 230 <= Nu <= 270, f"Nu={Nu:.1f} outside expected 230-270 for turbulent water"
+        assert 230 <= Nu <= 270, (
+            f"Nu={Nu:.1f} outside expected 230-270 for turbulent water"
+        )
 
     def test_nusselt_high_re_dielectric(self):
         """High Re (300k), Pr=25 (dielectric coolant) — Nu should be large (>1000)"""
@@ -96,14 +103,19 @@ class TestHeatTransferCorrelations:
 
     def test_nusselt_scales_with_reynolds(self):
         """Nu must increase monotonically with Re"""
-        results = [nusselt_dittus_boelter(Re=r, Pr=7.0) for r in [10_000, 50_000, 100_000, 500_000]]
-        assert all(results[i] < results[i+1] for i in range(len(results)-1))
+        results = [
+            nusselt_dittus_boelter(Re=r, Pr=7.0)
+            for r in [10_000, 50_000, 100_000, 500_000]
+        ]
+        assert all(results[i] < results[i + 1] for i in range(len(results) - 1))
 
     def test_reynolds_turbulent_threshold(self):
         """Flow in 10mm tube at 1 m/s (water 25°C, ν=8.9e-7 m²/s) → Re≈11,236 (turbulent)"""
         Re = reynolds_number(velocity=1.0, diameter=0.01, kinematic_viscosity=8.9e-7)
         assert Re > 4000, f"Re={Re:.0f} — expected turbulent flow"
-        assert approx(11236, Re, tol=0.05), f"Re={Re:.0f} deviates >5% from expected 11236"
+        assert approx(11236, Re, tol=0.05), (
+            f"Re={Re:.0f} deviates >5% from expected 11236"
+        )
 
     def test_prandtl_water_temperature_dependence(self):
         """Pr should decrease as water temperature increases (viscosity effect)"""
@@ -116,6 +128,7 @@ class TestHeatTransferCorrelations:
 # ─────────────────────────────────────────────────────────────
 # TEST CLASS: HEAT TRANSFER RATES
 # ─────────────────────────────────────────────────────────────
+
 
 class TestHeatTransferRates:
     """Validate Q = ṁ·cp·ΔT for GPU cooling scenarios"""
@@ -133,13 +146,14 @@ class TestHeatTransferRates:
     def test_colossus_cluster_aggregate(self):
         """200,000 GPUs × 700W = 140MW aggregate thermal load"""
         total_gpu_load_mw = 200_000 * 700 / 1e6
-        assert total_gpu_load_mw == pytest.approx(140.0, rel=1e-3), \
+        assert total_gpu_load_mw == pytest.approx(140.0, rel=1e-3), (
             f"Aggregate load {total_gpu_load_mw}MW ≠ 140MW"
+        )
 
     def test_heat_rejection_mass_balance(self):
         """Cooling tower: 140MW rejected via water ΔT=10°C → ṁ ≈ 3345 kg/s"""
         Q_target = 140e6  # W
-        delta_T = 10.0    # °C
+        delta_T = 10.0  # °C
         m_dot = Q_target / (WATER_SPECIFIC_HEAT * delta_T)
         assert approx(3345, m_dot, tol=0.02), f"ṁ={m_dot:.0f} kg/s vs expected 3345"
 
@@ -147,6 +161,7 @@ class TestHeatTransferRates:
 # ─────────────────────────────────────────────────────────────
 # TEST CLASS: PUE
 # ─────────────────────────────────────────────────────────────
+
 
 class TestPUE:
     """Validate PUE calculations (ASHRAE TC9.9 definitions)"""
@@ -166,12 +181,14 @@ class TestPUE:
         baseline = pue(189e6, 140e6)
         optimized = pue(155.4e6, 140e6)
         improvement_pct = (baseline - optimized) / baseline * 100
-        assert improvement_pct >= 15.0, f"Improvement {improvement_pct:.1f}% < 15% threshold"
+        assert improvement_pct >= 15.0, (
+            f"Improvement {improvement_pct:.1f}% < 15% threshold"
+        )
 
     def test_pue_power_savings_annually(self):
         """Annual power savings at 0.24 PUE reduction × 140MW"""
-        baseline_overhead = (1.35 - 1.0) * 140e6   # 49MW overhead
-        optimized_overhead = (1.11 - 1.0) * 140e6   # 15.4MW overhead
+        baseline_overhead = (1.35 - 1.0) * 140e6  # 49MW overhead
+        optimized_overhead = (1.11 - 1.0) * 140e6  # 15.4MW overhead
         savings_mw = baseline_overhead - optimized_overhead
         assert savings_mw >= 33.0, f"Savings={savings_mw:.1f}MW < 33MW expected"
 
@@ -181,12 +198,15 @@ class TestPUE:
         hours_per_year = 8760
         cost_per_kwh = 0.05
         annual_savings = savings_w / 1000 * hours_per_year * cost_per_kwh
-        assert annual_savings > 10_000_000, f"Savings ${annual_savings/1e6:.1f}M < $10M/yr"
+        assert annual_savings > 10_000_000, (
+            f"Savings ${annual_savings / 1e6:.1f}M < $10M/yr"
+        )
 
 
 # ─────────────────────────────────────────────────────────────
 # TEST CLASS: EXERGY / THERMODYNAMICS
 # ─────────────────────────────────────────────────────────────
+
 
 class TestExergyAndThermodynamics:
     """Validate 2nd Law metrics: exergy destruction, entropy generation"""
@@ -203,7 +223,9 @@ class TestExergyAndThermodynamics:
         S_gen = entropy_generation_heat_transfer(
             Q=1000.0, T_hot_k=300.0, T_cold_k=300.0
         )
-        assert abs(S_gen) < 1e-9, "Reversible process should have zero entropy generation"
+        assert abs(S_gen) < 1e-9, (
+            "Reversible process should have zero entropy generation"
+        )
 
     def test_exergy_destruction_positive(self):
         """Gouy-Stodola: X_destroyed = T0 × Ṡ_gen must be ≥ 0"""
@@ -219,17 +241,21 @@ class TestExergyAndThermodynamics:
 
     def test_physics_gate_blocks_entropy_decrease(self):
         """Physics gate: any proposed action with ΔS < 0 must be rejected"""
+
         def physics_gate(delta_entropy: float) -> bool:
             return delta_entropy >= 0
 
         assert physics_gate(0.5) is True
         assert physics_gate(0.0) is True
-        assert physics_gate(-0.001) is False, "Physics gate failed to block 2nd Law violation"
+        assert physics_gate(-0.001) is False, (
+            "Physics gate failed to block 2nd Law violation"
+        )
 
 
 # ─────────────────────────────────────────────────────────────
 # TEST CLASS: COOLING TOWER
 # ─────────────────────────────────────────────────────────────
+
 
 class TestCoolingTowerPerformance:
     """Validate cooling tower psychrometric benchmarks"""
@@ -242,7 +268,9 @@ class TestCoolingTowerPerformance:
     def test_approach_temperature_typical_range(self):
         """Typical industrial cooling tower: approach 3–8°C"""
         approach = cooling_tower_approach(wet_bulb_c=24.0, leaving_water_c=29.0)
-        assert 3.0 <= approach <= 8.0, f"Approach={approach}°C outside typical 3–8°C range"
+        assert 3.0 <= approach <= 8.0, (
+            f"Approach={approach}°C outside typical 3–8°C range"
+        )
 
     def test_range_temperature(self):
         """Range = Entering - Leaving water temp; typical 8–15°C for datacenters"""
@@ -256,6 +284,7 @@ class TestCoolingTowerPerformance:
 # TEST CLASS: SLA BENCHMARKS
 # ─────────────────────────────────────────────────────────────
 
+
 class TestPerformanceSLAs:
     """Validate claimed SLA metrics from README benchmarks"""
 
@@ -263,8 +292,9 @@ class TestPerformanceSLAs:
         """System must detect and respond to hot-spot in < 60 seconds"""
         claimed_response_sec = 47
         sla_seconds = 60
-        assert claimed_response_sec < sla_seconds, \
+        assert claimed_response_sec < sla_seconds, (
             f"Response {claimed_response_sec}s exceeds {sla_seconds}s SLA"
+        )
 
     def test_operator_intervention_reduction(self):
         """Baseline 12/day → optimized 1.4/day = 88.3% reduction"""
@@ -283,4 +313,5 @@ class TestPerformanceSLAs:
 
 if __name__ == "__main__":
     import subprocess
+
     subprocess.run(["pytest", __file__, "-v", "--tb=short"], check=True)

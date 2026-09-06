@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import json
 import pathlib
-import sys
 
 import pytest
 
@@ -90,7 +89,9 @@ class TestLoadManifest:
 
     def test_entry_without_circuit_id_is_skipped(self, tmp_path):
         p = tmp_path / "no_cid.json"
-        p.write_text(json.dumps({"circuits": [{"batch_id": "X", "nanoparticle": "Al2O3"}]}))
+        p.write_text(
+            json.dumps({"circuits": [{"batch_id": "X", "nanoparticle": "Al2O3"}]})
+        )
         circuits = load_circuit_manifest(p)
         assert circuits == {}
 
@@ -142,14 +143,24 @@ class TestInvariants:
         """All violations must be reported in one raise, not one-at-a-time."""
         circuits = {
             "C1": CircuitFluidState(
-                batch_id="B1", circuit_id="C1", nanoparticle="X",
-                volume_fraction_pct=0.5, effective_conductivity_w_mk=0.5,
-                degradation_pct=20.0, status="active", replacement_due=True,
+                batch_id="B1",
+                circuit_id="C1",
+                nanoparticle="X",
+                volume_fraction_pct=0.5,
+                effective_conductivity_w_mk=0.5,
+                degradation_pct=20.0,
+                status="active",
+                replacement_due=True,
             ),
             "C2": CircuitFluidState(
-                batch_id="B2", circuit_id="C2", nanoparticle="Y",
-                volume_fraction_pct=0.3, effective_conductivity_w_mk=-1.0,
-                degradation_pct=5.0, status="offline", replacement_due=False,
+                batch_id="B2",
+                circuit_id="C2",
+                nanoparticle="Y",
+                volume_fraction_pct=0.3,
+                effective_conductivity_w_mk=-1.0,
+                degradation_pct=5.0,
+                status="offline",
+                replacement_due=False,
             ),
         }
         with pytest.raises(NanosphereBridgeError) as exc_info:

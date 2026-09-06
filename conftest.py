@@ -11,7 +11,6 @@ without installing the package.
 """
 
 import sys
-import types
 from pathlib import Path
 
 ROOT = Path(__file__).parent.resolve()
@@ -21,34 +20,35 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 # Add src/ so `from schemas.x` works
-_src_path = ROOT / 'src'
+_src_path = ROOT / "src"
 if _src_path.exists() and str(_src_path) not in sys.path:
     sys.path.insert(0, str(_src_path))
 
 # Alias mastermind-fusion/ -> mastermind_fusion module
-_fusion_path = ROOT / 'mastermind-fusion'
+_fusion_path = ROOT / "mastermind-fusion"
 if _fusion_path.exists() and str(_fusion_path) not in sys.path:
     sys.path.insert(0, str(_fusion_path.parent))
     # Create a module alias so `import mastermind_fusion` resolves to mastermind-fusion/
     import importlib.util
+
     _spec = importlib.util.spec_from_file_location(
-        'mastermind_fusion',
-        str(_fusion_path / '__init__.py'),
+        "mastermind_fusion",
+        str(_fusion_path / "__init__.py"),
         submodule_search_locations=[str(_fusion_path)],
     )
     if _spec and _spec.loader:
         _mod = importlib.util.module_from_spec(_spec)
-        sys.modules['mastermind_fusion'] = _mod
+        sys.modules["mastermind_fusion"] = _mod
         # Also register submodules discovered so far
-        for _sub in _fusion_path.glob('*.py'):
-            if _sub.stem == '__init__':
+        for _sub in _fusion_path.glob("*.py"):
+            if _sub.stem == "__init__":
                 continue
             _sub_spec = importlib.util.spec_from_file_location(
-                f'mastermind_fusion.{_sub.stem}',
+                f"mastermind_fusion.{_sub.stem}",
                 str(_sub),
             )
             if _sub_spec and _sub_spec.loader:
                 _sub_mod = importlib.util.module_from_spec(_sub_spec)
-                sys.modules[f'mastermind_fusion.{_sub.stem}'] = _sub_mod
+                sys.modules[f"mastermind_fusion.{_sub.stem}"] = _sub_mod
                 _sub_spec.loader.exec_module(_sub_mod)
         _spec.loader.exec_module(_mod)

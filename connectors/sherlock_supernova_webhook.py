@@ -18,7 +18,6 @@ Deploy:
 """
 
 from __future__ import annotations
-import json
 import logging
 import os
 import time
@@ -28,21 +27,21 @@ from typing import Optional
 import numpy as np
 from sklearn.ensemble import IsolationForest
 
-logger = logging.getLogger('SHERLOCK-SUPERNOVA')
+logger = logging.getLogger("SHERLOCK-SUPERNOVA")
 logging.basicConfig(
-    level=logging.INFO,
-    format='[%(asctime)s] [%(name)s] %(levelname)s -- %(message)s'
+    level=logging.INFO, format="[%(asctime)s] [%(name)s] %(levelname)s -- %(message)s"
 )
 
 
 def get_supabase_client():
     from supabase import create_client
-    url = os.getenv('SUPABASE_URL')
-    key = os.getenv('SUPABASE_SERVICE_KEY')
+
+    url = os.getenv("SUPABASE_URL")
+    key = os.getenv("SUPABASE_SERVICE_KEY")
     if not url or not key:
         raise EnvironmentError(
-            'Set SUPABASE_URL and SUPABASE_SERVICE_KEY env vars.\n'
-            'Project: GlacierEQ/mastermind'
+            "Set SUPABASE_URL and SUPABASE_SERVICE_KEY env vars.\n"
+            "Project: GlacierEQ/mastermind"
         )
     return create_client(url, key)
 
@@ -55,9 +54,9 @@ class SherlockSupernovaDetector:
 
     SEVERITY_THRESHOLDS = {
         "CRITICAL": 5.0,
-        "HIGH":     3.5,
-        "MEDIUM":   2.5,
-        "LOW":      1.5,
+        "HIGH": 3.5,
+        "MEDIUM": 2.5,
+        "LOW": 1.5,
     }
 
     def __init__(self, contamination: float = 0.05, window_size: int = 100):
@@ -76,15 +75,23 @@ class SherlockSupernovaDetector:
         if len(self.baseline_window) < 20:
             return False
         X = np.array(self.baseline_window).reshape(-1, 1)
-        self.model = IsolationForest(contamination=self.contamination, random_state=42, n_estimators=100)
+        self.model = IsolationForest(
+            contamination=self.contamination, random_state=42, n_estimators=100
+        )
         self.model.fit(X)
         self.trained = True
         logger.info(f"IsolationForest trained on {len(self.baseline_window)} samples.")
         return True
 
     def detect(self, temp: float, node_id: str) -> Optional[dict]:
-        baseline = float(np.mean(self.baseline_window)) if self.baseline_window else temp
-        std = float(np.std(self.baseline_window)) if len(self.baseline_window) > 1 else 0.0
+        baseline = (
+            float(np.mean(self.baseline_window)) if self.baseline_window else temp
+        )
+        std = (
+            float(np.std(self.baseline_window))
+            if len(self.baseline_window) > 1
+            else 0.0
+        )
         deviation = abs(temp - baseline)
         z_score = deviation / std if std > 0 else 0.0
 
@@ -100,17 +107,19 @@ class SherlockSupernovaDetector:
 
         if severity or if_anomaly:
             return {
-                "node_id":               node_id,
-                "temp_celsius":          temp,
-                "baseline_celsius":      round(baseline, 2),
-                "deviation_celsius":     round(deviation, 2),
-                "z_score":               round(z_score, 3),
-                "severity":              severity or "LOW",
+                "node_id": node_id,
+                "temp_celsius": temp,
+                "baseline_celsius": round(baseline, 2),
+                "deviation_celsius": round(deviation, 2),
+                "z_score": round(z_score, 3),
+                "severity": severity or "LOW",
                 "isolation_forest_flag": if_anomaly,
-                "root_cause_hypothesis": self._hypothesize(temp, baseline, deviation, z_score),
-                "agent":                 "SHERLOCK-SUPERNOVA",
-                "ring":                  -3,
-                "timestamp":             datetime.utcnow().isoformat(),
+                "root_cause_hypothesis": self._hypothesize(
+                    temp, baseline, deviation, z_score
+                ),
+                "agent": "SHERLOCK-SUPERNOVA",
+                "ring": -3,
+                "timestamp": datetime.utcnow().isoformat(),
             }
         return None
 
@@ -118,13 +127,19 @@ class SherlockSupernovaDetector:
         if z_score > 5.0:
             return "CRITICAL thermal runaway -- immediate rack inspection required"
         if temp > baseline + 15:
-            return "Rack hotspot -- thermal gradient drift, possible rear airflow blockage"
+            return (
+                "Rack hotspot -- thermal gradient drift, possible rear airflow blockage"
+            )
         if temp > baseline + 8:
-            return "Elevated thermal load -- check CDU supply valve position and flow rate"
+            return (
+                "Elevated thermal load -- check CDU supply valve position and flow rate"
+            )
         if temp < baseline - 8:
             return "Overcooling anomaly -- possible valve stuck open or sensor drift"
         if deviation > 5:
-            return "Thermal oscillation -- possible pump bearing micro-vibration signature"
+            return (
+                "Thermal oscillation -- possible pump bearing micro-vibration signature"
+            )
         return "Statistical anomaly -- monitor for trend development"
 
 
@@ -165,16 +180,18 @@ class SherlockWebhookPipeline:
 
     def _persist_anomaly(self, anomaly: dict) -> None:
         try:
-            self.client.table("colossus_anomalies").insert({
-                "node_id":           anomaly["node_id"],
-                "deviation_celsius": anomaly["deviation_celsius"],
-                "baseline_celsius":  anomaly["baseline_celsius"],
-                "severity":          anomaly["severity"],
-                "root_cause":        anomaly["root_cause_hypothesis"],
-                "z_score":           anomaly["z_score"],
-                "agent":             "SHERLOCK-SUPERNOVA",
-                "timestamp":         anomaly["timestamp"],
-            }).execute()
+            self.client.table("colossus_anomalies").insert(
+                {
+                    "node_id": anomaly["node_id"],
+                    "deviation_celsius": anomaly["deviation_celsius"],
+                    "baseline_celsius": anomaly["baseline_celsius"],
+                    "severity": anomaly["severity"],
+                    "root_cause": anomaly["root_cause_hypothesis"],
+                    "z_score": anomaly["z_score"],
+                    "agent": "SHERLOCK-SUPERNOVA",
+                    "timestamp": anomaly["timestamp"],
+                }
+            ).execute()
             logger.info(f"[SHERLOCK] Anomaly persisted: {anomaly['node_id']}")
         except Exception as e:
             logger.error(f"[SHERLOCK] Supabase persist failed: {e}")
@@ -183,18 +200,19 @@ class SherlockWebhookPipeline:
         logger.info("[SHERLOCK] Subscribing to colossus_thermal_events...")
         try:
             (
-                self.client
-                .channel("sherlock-thermal-watch")
+                self.client.channel("sherlock-thermal-watch")
                 .on(
                     "postgres_changes",
                     event="INSERT",
                     schema="public",
                     table="colossus_thermal_events",
-                    callback=self._on_thermal_event
+                    callback=self._on_thermal_event,
                 )
                 .subscribe()
             )
-            logger.info("[SHERLOCK] Real-time subscription ACTIVE. Hunting anomalies...")
+            logger.info(
+                "[SHERLOCK] Real-time subscription ACTIVE. Hunting anomalies..."
+            )
             while True:
                 time.sleep(1)
         except KeyboardInterrupt:
@@ -217,6 +235,7 @@ CREATE INDEX IF NOT EXISTS idx_anomalies_agent
 
 if __name__ == "__main__":
     import sys
+
     if "--schema" in sys.argv:
         print(SUPABASE_SCHEMA_EXTENSION)
         sys.exit(0)

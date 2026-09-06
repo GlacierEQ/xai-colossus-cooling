@@ -15,7 +15,7 @@ Invariants:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Any
+from typing import Dict
 import json
 import pathlib
 import sys
@@ -42,7 +42,9 @@ class NanosphereBridgeError(RuntimeError):
     pass
 
 
-def load_circuit_manifest(path: pathlib.Path = NANOSPHERE_MANIFEST_PATH) -> Dict[str, CircuitFluidState]:
+def load_circuit_manifest(
+    path: pathlib.Path = NANOSPHERE_MANIFEST_PATH,
+) -> Dict[str, CircuitFluidState]:
     if not path.exists():
         raise NanosphereBridgeError(f"Nanosphere circuit manifest not found at {path}")
     with path.open() as f:
@@ -76,9 +78,7 @@ def assert_coolant_invariants(circuits: Dict[str, CircuitFluidState]) -> None:
 
     for cid, state in circuits.items():
         if state.status not in {"active"}:
-            violations.append(
-                f"circuit {cid} status={state.status} (must be 'active')"
-            )
+            violations.append(f"circuit {cid} status={state.status} (must be 'active')")
         if state.replacement_due:
             violations.append(
                 f"circuit {cid} replacement_due=True (coolant batch must be replaced before startup)"
@@ -93,7 +93,9 @@ def assert_coolant_invariants(circuits: Dict[str, CircuitFluidState]) -> None:
             )
 
     if violations:
-        message = "Nanosphere coolant invariants violated:\n  - " + "\n  - ".join(violations)
+        message = "Nanosphere coolant invariants violated:\n  - " + "\n  - ".join(
+            violations
+        )
         raise NanosphereBridgeError(message)
 
 
@@ -131,7 +133,9 @@ if __name__ == "__main__":
         print(str(e), file=sys.stderr)
         sys.exit(1)
     else:
-        print(f"Loaded {len(circuits)} coolant circuits from nanosphere. All invariants satisfied.")
+        print(
+            f"Loaded {len(circuits)} coolant circuits from nanosphere. All invariants satisfied."
+        )
         for cid, state in circuits.items():
             print(
                 f"{cid}: k={state.effective_conductivity_w_mk:.4f} W/m\u00b7K, "

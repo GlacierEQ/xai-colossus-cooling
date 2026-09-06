@@ -12,7 +12,8 @@ Target: PUE 1.03 | GPU Junction Temp 35-42°C
 import asyncio
 import random
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Dict, List
+
 
 @dataclass
 class ImmersionTank:
@@ -20,9 +21,10 @@ class ImmersionTank:
     gpu_count: int
     coolant_level_pct: float
     coolant_temp_c: float
-    boiling_onset_c: float = 61.0 # Novec 7100 boiling point
+    boiling_onset_c: float = 61.0  # Novec 7100 boiling point
     pressure_bar: float = 1.01
     vapor_recovery_active: bool = False
+
 
 class ImmersionCoolingEngine:
     """Orchestrates two-phase immersion cooling for the GPU fabric."""
@@ -33,8 +35,9 @@ class ImmersionCoolingEngine:
                 tank_id=f"TANK-{i:03d}",
                 gpu_count=20000,
                 coolant_level_pct=98.5,
-                coolant_temp_c=35.0
-            ) for i in range(tank_count)
+                coolant_temp_c=35.0,
+            )
+            for i in range(tank_count)
         ]
 
     async def simulate_boiling_cycle(self, load_factor: float = 1.0) -> List[Dict]:
@@ -44,7 +47,7 @@ class ImmersionCoolingEngine:
             # Heat load adds to coolant temp
             heat_gain = 5.0 * load_factor * (random.random() * 0.2 + 0.9)
             tank.coolant_temp_c += heat_gain
-            
+
             status = "STABLE"
             if tank.coolant_temp_c >= tank.boiling_onset_c:
                 tank.vapor_recovery_active = True
@@ -54,12 +57,14 @@ class ImmersionCoolingEngine:
             else:
                 tank.vapor_recovery_active = False
 
-            reports.append({
-                "tank": tank.tank_id,
-                "temp_c": round(tank.coolant_temp_c, 2),
-                "vapor_recovery": tank.vapor_recovery_active,
-                "status": status
-            })
+            reports.append(
+                {
+                    "tank": tank.tank_id,
+                    "temp_c": round(tank.coolant_temp_c, 2),
+                    "vapor_recovery": tank.vapor_recovery_active,
+                    "status": status,
+                }
+            )
         return reports
 
     def calculate_microfluidic_efficiency(
@@ -97,7 +102,7 @@ class ImmersionCoolingEngine:
             nu = 3.66 + 0.2 * min(re / 2300.0, 1.0)  # approach developed laminar
         else:
             # Dittus–Boelter cooling (n=0.3) for turbulent branch
-            nu = 0.023 * (re ** 0.8) * (pr ** 0.3)
+            nu = 0.023 * (re**0.8) * (pr**0.3)
 
         h = nu * coolant_k_w_mk / channel_dh_m  # W/m²·K
         # NTU-style effectiveness for constant wall, single-pass channel group
@@ -109,6 +114,7 @@ class ImmersionCoolingEngine:
         # Bound to physical delivery efficiency for cold-plate packaging
         return float(max(0.0, min(0.99, effectiveness)))
 
+
 async def main():
     engine = ImmersionCoolingEngine(tank_count=5)
     print("Starting Immersion Cooling Simulation [Novec 7100]...")
@@ -116,8 +122,11 @@ async def main():
         reports = await engine.simulate_boiling_cycle(load_factor=1.2)
         print(f"\nTick {tick} Report:")
         for r in reports:
-            print(f"  {r['tank']} | Temp: {r['temp_c']}°C | Vapor: {r['vapor_recovery']} | {r['status']}")
+            print(
+                f"  {r['tank']} | Temp: {r['temp_c']}°C | Vapor: {r['vapor_recovery']} | {r['status']}"
+            )
         await asyncio.sleep(0.5)
+
 
 if __name__ == "__main__":
     asyncio.run(main())

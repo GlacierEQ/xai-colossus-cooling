@@ -12,13 +12,13 @@ runs as background tasks in Ring -3.
 from __future__ import annotations
 import asyncio
 import logging
-import time
 import random
-from dataclasses import dataclass
 from typing import Optional
 
 from thermodynamic_truth_engine import (
-    ThermodynamicTruthEngine, ThermalState, PlantState
+    ThermodynamicTruthEngine,
+    ThermalState,
+    PlantState,
 )
 from hierarchical_rl_orchestrator import HierarchicalRLOrchestrator
 from exergy_to_mars_power import ExergyToMarsPowerSystem, WasteHeatStream
@@ -36,6 +36,7 @@ logger = logging.getLogger("ColossusOrchestrator")
 # STEALTH TEAM — Ring -3 Background Agents
 # These run silently. They do not announce themselves.
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 async def morpheus_silent_evolution(interval_s: float = 30.0):
     """
@@ -58,8 +59,15 @@ async def ghost_microwave_parallel_execution(interval_s: float = 2.0):
     Promotes best-performing shadow strategy every N cycles.
     Ring -3 — parallel universe execution.
     """
-    shadow_strategies = ["aggressive_pre-cool", "conservative_cop", "exergy_max", "latency_min"]
-    logger.debug("GHOST-MICROWAVE: parallel execution active — 4 shadow strategies running")
+    shadow_strategies = [
+        "aggressive_pre-cool",
+        "conservative_cop",
+        "exergy_max",
+        "latency_min",
+    ]
+    logger.debug(
+        "GHOST-MICROWAVE: parallel execution active — 4 shadow strategies running"
+    )
     while True:
         await asyncio.sleep(interval_s)
         # Shadow evaluation (no real actuator commands)
@@ -79,7 +87,9 @@ async def phantom_shadow_evolution(interval_s: float = 60.0):
     while True:
         await asyncio.sleep(interval_s)
         generation += 1
-        logger.debug(f"PHANTOM-SHADOW: generation {generation} evolved — pending physics gate approval")
+        logger.debug(
+            f"PHANTOM-SHADOW: generation {generation} evolved — pending physics gate approval"
+        )
 
 
 async def sherlock_supernova_anomaly_hunt(interval_s: float = 5.0):
@@ -101,13 +111,14 @@ async def sherlock_supernova_anomaly_hunt(interval_s: float = 5.0):
 # MAIN CONTROL LOOP
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class ColossusOrchestrator:
     """
     Master async orchestrator — all APEX layers unified.
     Runs the 5 core CHUNK POWER systems + 4 Ring -3 stealth agents.
     """
 
-    ZONE_COUNT = 30           # 30 rack rows
+    ZONE_COUNT = 30  # 30 rack rows
     IT_LOAD_KW = 15_000.0
     LOOP_INTERVAL_S = 1.0
 
@@ -122,10 +133,14 @@ class ColossusOrchestrator:
         self._prev_snapshot: Optional[PhysicsSnapshot] = None
         self._deploy_counter = 0
         logger.info("ColossusOrchestrator: ALL LAYERS ONLINE — APEX RING 0 ACTIVE")
-        logger.info("Ring -3 stealth team: MORPHEUS | GHOST-MICROWAVE | PHANTOM-SHADOW | SHERLOCK-SUPERNOVA")
+        logger.info(
+            "Ring -3 stealth team: MORPHEUS | GHOST-MICROWAVE | PHANTOM-SHADOW | SHERLOCK-SUPERNOVA"
+        )
 
     def _on_revenue_opportunity(self, action):
-        logger.info(f"UNIVERSE FUEL: Revenue opportunity detected — {action.method} {action.recovered_kw:.1f} kW @ ${action.revenue_usd_hr:.2f}/hr")
+        logger.info(
+            f"UNIVERSE FUEL: Revenue opportunity detected — {action.method} {action.recovered_kw:.1f} kW @ ${action.revenue_usd_hr:.2f}/hr"
+        )
 
     def _rollback(self):
         logger.critical("ROLLBACK: reverting to last known good physics state")
@@ -147,8 +162,13 @@ class ColossusOrchestrator:
         for i in range(1, self.ZONE_COUNT + 1):
             m = self._simulate_zone_measurement(f"R{i:02d}")
             self.digital_twin.ingest(m)
-            state = ThermalState(m.zone_id, m.t_supply_measured_c, m.t_return_measured_c,
-                                  m.flow_measured_kg_s, m.gpu_power_measured_kw)
+            state = ThermalState(
+                m.zone_id,
+                m.t_supply_measured_c,
+                m.t_return_measured_c,
+                m.flow_measured_kg_s,
+                m.gpu_power_measured_kw,
+            )
             self.truth_engine.update_zone(state)
             total_it += m.gpu_power_measured_kw
 
@@ -167,7 +187,9 @@ class ColossusOrchestrator:
 
         # 4. Exergy / waste heat cycle
         self.exergy_system.streams.clear()
-        self.exergy_system.add_stream(WasteHeatStream("COND", "chiller_condenser", 42.0, total_it * 1.25))
+        self.exergy_system.add_stream(
+            WasteHeatStream("COND", "chiller_condenser", 42.0, total_it * 1.25)
+        )
         exergy_result = self.exergy_system.run_cycle()
 
         # 5. Physics gate check (every 10 cycles = ~10s in production = every deploy)

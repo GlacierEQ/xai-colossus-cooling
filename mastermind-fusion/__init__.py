@@ -25,12 +25,12 @@ from mastermind_fusion.mcp_router import (
 )
 
 __all__ = [
-    'MCPRouter',
-    'MCPRequest',
-    'MCPResponse',
-    'RequestType',
-    'ResponseStatus',
-    'build_router',
+    "MCPRouter",
+    "MCPRequest",
+    "MCPResponse",
+    "RequestType",
+    "ResponseStatus",
+    "build_router",
 ]
 
-__version__ = '1.0.0'
+__version__ = "1.0.0"

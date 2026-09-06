@@ -9,7 +9,6 @@ Issue #17 acceptance criteria + audit gap coverage:
   - params.arguments not object rejected (audit gap #2)
 """
 
-import pytest
 import sys
 import os
 
@@ -23,6 +22,7 @@ def _make_validator():
         os.path.dirname(__file__), "..", "src", "schemas", "mcp_request.json"
     )
     from schemas.mcp_request_validator import MCPRequestValidator
+
     return MCPRequestValidator(schema_path=os.path.abspath(schema_path))
 
 
@@ -35,14 +35,18 @@ def _result(validator, payload) -> dict:
 
 # ── Happy paths ─────────────────────────────────────────────────────────────
 
+
 def test_valid_tools_call_passes():
     v = _make_validator()
-    result = _result(v, {
-        "jsonrpc": "2.0",
-        "id": "req-001",
-        "method": "tools/call",
-        "params": {"name": "thermal_status", "arguments": {}},
-    })
+    result = _result(
+        v,
+        {
+            "jsonrpc": "2.0",
+            "id": "req-001",
+            "method": "tools/call",
+            "params": {"name": "thermal_status", "arguments": {}},
+        },
+    )
     assert result["status"] == "SUCCESS"
 
 
@@ -59,6 +63,7 @@ def test_integer_id_passes():
 
 
 # ── Required field failures ──────────────────────────────────────────────────
+
 
 def test_missing_jsonrpc_returns_error():
     v = _make_validator()
@@ -87,6 +92,7 @@ def test_missing_id_returns_error():
 
 # ── Type / value failures ────────────────────────────────────────────────────
 
+
 def test_null_id_returns_error():
     """Audit gap #1: id=null must be rejected (id must be string or integer)."""
     v = _make_validator()
@@ -96,33 +102,49 @@ def test_null_id_returns_error():
 
 def test_unknown_top_level_field_returns_error():
     v = _make_validator()
-    result = _result(v, {
-        "jsonrpc": "2.0", "id": "r-4", "method": "tools/call",
-        "EVIL_FIELD": "injected",
-    })
+    result = _result(
+        v,
+        {
+            "jsonrpc": "2.0",
+            "id": "r-4",
+            "method": "tools/call",
+            "EVIL_FIELD": "injected",
+        },
+    )
     assert result["status"] == "ERROR"
 
 
 def test_params_name_not_string_returns_error():
     v = _make_validator()
-    result = _result(v, {
-        "jsonrpc": "2.0", "id": "r-5", "method": "tools/call",
-        "params": {"name": 999, "arguments": {}},
-    })
+    result = _result(
+        v,
+        {
+            "jsonrpc": "2.0",
+            "id": "r-5",
+            "method": "tools/call",
+            "params": {"name": 999, "arguments": {}},
+        },
+    )
     assert result["status"] == "ERROR"
 
 
 def test_params_arguments_not_object_returns_error():
     """Audit gap #2: params.arguments must be an object, not a string/list."""
     v = _make_validator()
-    result = _result(v, {
-        "jsonrpc": "2.0", "id": "r-6", "method": "tools/call",
-        "params": {"name": "thermal_status", "arguments": "not-an-object"},
-    })
+    result = _result(
+        v,
+        {
+            "jsonrpc": "2.0",
+            "id": "r-6",
+            "method": "tools/call",
+            "params": {"name": "thermal_status", "arguments": "not-an-object"},
+        },
+    )
     assert result["status"] == "ERROR"
 
 
 # ── Never-silent guarantee ───────────────────────────────────────────────────
+
 
 def test_rejection_never_silent():
     """Every failure path must return a non-empty reason string."""

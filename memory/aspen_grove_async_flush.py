@@ -27,7 +27,6 @@ Usage:
 import asyncio
 import json
 import logging
-import os
 import time
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -81,8 +80,12 @@ class AsyncFlushLogger:
             return
         self._running = True
         self._task = asyncio.create_task(self._writer_loop(), name="async-flush-writer")
-        log.info("AsyncFlushLogger started | path=%s batch_size=%d flush_interval=%.1fs",
-                 self.log_path, self._batch_size, self._flush_interval_s)
+        log.info(
+            "AsyncFlushLogger started | path=%s batch_size=%d flush_interval=%.1fs",
+            self.log_path,
+            self._batch_size,
+            self._flush_interval_s,
+        )
 
     async def flush_and_close(self) -> None:
         """Drain the queue completely, then stop the background writer.
@@ -96,11 +99,17 @@ class AsyncFlushLogger:
             try:
                 await asyncio.wait_for(self._task, timeout=10.0)
             except asyncio.TimeoutError:
-                log.error("AsyncFlushLogger flush timed out — %d events may be lost",
-                          self._queue.qsize())
+                log.error(
+                    "AsyncFlushLogger flush timed out — %d events may be lost",
+                    self._queue.qsize(),
+                )
         self._running = False
-        log.info("AsyncFlushLogger closed | written=%d dropped=%d batches=%d",
-                 self._written, self._dropped, self._batch_count)
+        log.info(
+            "AsyncFlushLogger closed | written=%d dropped=%d batches=%d",
+            self._written,
+            self._dropped,
+            self._batch_count,
+        )
 
     # ------------------------------------------------------------------ #
     # Hot path                                                             #
@@ -119,8 +128,11 @@ class AsyncFlushLogger:
 
         depth = self._queue.qsize()
         if depth >= self._queue_warn_depth:
-            log.warning("AsyncFlushLogger queue depth %d >= %d — possible write stall",
-                        depth, self._queue_warn_depth)
+            log.warning(
+                "AsyncFlushLogger queue depth %d >= %d — possible write stall",
+                depth,
+                self._queue_warn_depth,
+            )
 
         self._queue.put_nowait(enriched)
 

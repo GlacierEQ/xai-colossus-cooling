@@ -16,6 +16,7 @@ import os
 import pytest
 
 import sys
+
 SRC_DIR = os.path.join(os.path.dirname(__file__), "..", "src")
 if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
@@ -24,6 +25,7 @@ from memory.aspen_grove_logger import AspenGroveLogger, QUEUE_DEPTH_WARN, QUEUE_
 
 
 # ── Overhead / non-blocking ──────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_log_event_overhead_under_5ms(tmp_path):
@@ -48,6 +50,7 @@ async def test_log_event_async_overhead_under_5ms(tmp_path):
 
 
 # ── Correctness under load ───────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_no_events_dropped_normal_load(tmp_path):
@@ -80,6 +83,7 @@ async def test_graceful_shutdown_flushes_all(tmp_path):
 
 # ── Queue depth warning ──────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_queue_depth_warning_fires(tmp_path, caplog):
     log = AspenGroveLogger(log_path=str(tmp_path / "audit.log"))
@@ -97,6 +101,7 @@ async def test_queue_depth_warning_fires(tmp_path, caplog):
 
 # ── Overflow protection ──────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_overflow_count_increments_when_full(tmp_path):
     log = AspenGroveLogger(log_path=str(tmp_path / "audit.log"))
@@ -110,6 +115,7 @@ async def test_overflow_count_increments_when_full(tmp_path):
 
 
 # ── Lifecycle edge cases ─────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_shutdown_idempotent_with_no_events(tmp_path):

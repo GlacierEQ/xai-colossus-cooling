@@ -12,7 +12,6 @@ v1.3.0 additions (issue #16):
 """
 
 import asyncio
-import json
 import os
 import time
 from collections import deque
@@ -136,11 +135,7 @@ class MCPRouterConnector:
             start_time = time.perf_counter()
             # Validate original shape (domain or JSON-RPC); normalize only for dispatch.
             is_valid, msg = self.validator.validate(raw)
-            audit_id = (
-                raw.get("request_id")
-                or raw.get("id")
-                or "unknown"
-            )
+            audit_id = raw.get("request_id") or raw.get("id") or "unknown"
             method = raw.get("request_type") or raw.get("method") or "unknown"
 
             if not is_valid:
@@ -177,9 +172,7 @@ class MCPRouterConnector:
     # Tool dispatcher
     # ------------------------------------------------------------------
 
-    async def _dispatch_tool(
-        self, req: Dict[str, Any], orchestrator
-    ) -> Dict[str, Any]:
+    async def _dispatch_tool(self, req: Dict[str, Any], orchestrator) -> Dict[str, Any]:
         """Translate validated MCP tool-call into live orchestrator commands."""
         method = req.get("method")
         params = req.get("params", {})
@@ -190,7 +183,9 @@ class MCPRouterConnector:
 
         if method != "tools/call":
             result_payload["status"] = "ERROR"
-            result_payload["details"] = f"Method '{method}' not supported by thermal dispatcher."
+            result_payload["details"] = (
+                f"Method '{method}' not supported by thermal dispatcher."
+            )
             return self._wrap(req, result_payload)
 
         if tool_name not in self.SUPPORTED_TOOLS:
@@ -207,24 +202,30 @@ class MCPRouterConnector:
                 n for n in orchestrator.all_nodes if n.temp_celsius > threshold_c
             ]
             if target_nodes:
-                sn_result = await orchestrator.pistons["SUPERNOVA"].activate({
-                    "critical_nodes": target_nodes,
-                    "trigger": "MCP_EMERGENCY_BLAST",
-                })
+                sn_result = await orchestrator.pistons["SUPERNOVA"].activate(
+                    {
+                        "critical_nodes": target_nodes,
+                        "trigger": "MCP_EMERGENCY_BLAST",
+                    }
+                )
                 result_payload["details"] = (
                     f"SUPERNOVA triggered for {len(target_nodes)} nodes above {threshold_c}°C."
                 )
                 result_payload["nodes_affected"] = len(target_nodes)
             else:
-                result_payload["details"] = f"No nodes above {threshold_c}°C — no blast required."
+                result_payload["details"] = (
+                    f"No nodes above {threshold_c}°C — no blast required."
+                )
                 result_payload["nodes_affected"] = 0
 
         # ---- predictive_sweep -----------------------------------------
         elif tool_name == "predictive_sweep":
-            mw_result = await orchestrator.pistons["MICROWAVE"].activate({
-                "zones": orchestrator.zones,
-                "trigger": "MCP_PREDICTIVE_SWEEP",
-            })
+            mw_result = await orchestrator.pistons["MICROWAVE"].activate(
+                {
+                    "zones": orchestrator.zones,
+                    "trigger": "MCP_PREDICTIVE_SWEEP",
+                }
+            )
             result_payload["details"] = (
                 f"MICROWAVE sweep across {len(orchestrator.zones)} zones."
             )
@@ -236,23 +237,29 @@ class MCPRouterConnector:
             budget_kw = args.get("budget_kw")
             if zone_id is None or budget_kw is None:
                 result_payload["status"] = "ERROR"
-                result_payload["details"] = "zone_id and budget_kw are required arguments."
+                result_payload["details"] = (
+                    "zone_id and budget_kw are required arguments."
+                )
             else:
                 budget_kw = float(budget_kw)
                 matched = [z for z in orchestrator.zones if z.zone_id == zone_id]
                 if not matched:
                     result_payload["status"] = "ERROR"
-                    result_payload["details"] = f"Zone '{zone_id}' not registered in orchestrator."
+                    result_payload["details"] = (
+                        f"Zone '{zone_id}' not registered in orchestrator."
+                    )
                 else:
                     for zone in matched:
                         prev = zone.thermal_budget_kw
                         zone.thermal_budget_kw = budget_kw
-                        self.logger.log_event({
-                            "event": "ZONE_BUDGET_OVERRIDE",
-                            "zone_id": zone_id,
-                            "prev_kw": prev,
-                            "new_kw": budget_kw,
-                        })
+                        self.logger.log_event(
+                            {
+                                "event": "ZONE_BUDGET_OVERRIDE",
+                                "zone_id": zone_id,
+                                "prev_kw": prev,
+                                "new_kw": budget_kw,
+                            }
+                        )
                     result_payload["details"] = (
                         f"Zone {zone_id} thermal budget set to {budget_kw} kW (was {prev:.1f} kW)."
                     )
@@ -271,7 +278,9 @@ class MCPRouterConnector:
                 )
                 if fusion_result.get("status") == "UNKNOWN":
                     result_payload["status"] = "ERROR"
-                    result_payload["details"] = f"Fusion mode '{fusion_name}' not defined in manifest."
+                    result_payload["details"] = (
+                        f"Fusion mode '{fusion_name}' not defined in manifest."
+                    )
                 else:
                     result_payload["details"] = (
                         f"Fusion mode '{fusion_name}' dispatched: {fusion_result.get('status')}."
@@ -285,20 +294,26 @@ class MCPRouterConnector:
             for zone in orchestrator.zones:
                 if zone_filter and zone.zone_id != zone_filter:
                     continue
-                zones_data.append({
-                    "zone_id": zone.zone_id,
-                    "zone_name": zone.zone_name,
-                    "avg_temp_c": round(zone.avg_temp, 2),
-                    "peak_temp_c": round(zone.peak_temp, 2),
-                    "active_mode": zone.active_mode.value,
-                    "crac_units_active": zone.crac_units_active,
-                    "liquid_flow_lpm": round(zone.liquid_cooling_flow_lpm, 2),
-                    "thermal_budget_kw": round(zone.thermal_budget_kw, 2),
-                    "conductivity_factor": round(zone.conductivity_factor, 4),
-                    "node_count": len(zone.nodes),
-                    "nodes_in_alert": sum(1 for n in zone.nodes if n.alert_level > 0),
-                })
-            result_payload["details"] = f"Thermal status snapshot — {len(zones_data)} zone(s)."
+                zones_data.append(
+                    {
+                        "zone_id": zone.zone_id,
+                        "zone_name": zone.zone_name,
+                        "avg_temp_c": round(zone.avg_temp, 2),
+                        "peak_temp_c": round(zone.peak_temp, 2),
+                        "active_mode": zone.active_mode.value,
+                        "crac_units_active": zone.crac_units_active,
+                        "liquid_flow_lpm": round(zone.liquid_cooling_flow_lpm, 2),
+                        "thermal_budget_kw": round(zone.thermal_budget_kw, 2),
+                        "conductivity_factor": round(zone.conductivity_factor, 4),
+                        "node_count": len(zone.nodes),
+                        "nodes_in_alert": sum(
+                            1 for n in zone.nodes if n.alert_level > 0
+                        ),
+                    }
+                )
+            result_payload["details"] = (
+                f"Thermal status snapshot — {len(zones_data)} zone(s)."
+            )
             result_payload["zones"] = zones_data
             result_payload["total_nodes"] = len(orchestrator.all_nodes)
             result_payload["tick"] = orchestrator.tick

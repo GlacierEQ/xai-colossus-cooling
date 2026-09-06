@@ -31,7 +31,7 @@ class HealthReport:
 class MastermindSidecar:
     """
     Lightweight sidecar that connects AEON-777 repos to the Mastermind orchestrator.
-    
+
     Each repo includes this sidecar to:
     1. Report health status to the orchestrator
     2. Submit tasks for cross-domain execution
@@ -87,10 +87,10 @@ class MastermindSidecar:
                 memory = json.loads(self.shadow_memory_path.read_text())
             except Exception:
                 pass
-        
+
         memory[key] = value
         memory["last_updated"] = time.time()
-        
+
         self.shadow_memory_path.parent.mkdir(parents=True, exist_ok=True)
         self.shadow_memory_path.write_text(json.dumps(memory, indent=2))
 
@@ -98,7 +98,7 @@ class MastermindSidecar:
         """Read from local shadow memory."""
         if not self.shadow_memory_path.exists():
             return None
-        
+
         try:
             memory = json.loads(self.shadow_memory_path.read_text())
             if key:

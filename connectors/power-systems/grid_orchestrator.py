@@ -2,7 +2,9 @@
 Grid Orchestrator — Phase 6
 Handles ATS/STS transfer logic, grid islanding, and load shed tiers.
 """
-import asyncio, logging, uuid
+
+import logging
+import uuid
 from datetime import datetime, timezone
 from typing import Optional, Callable
 
@@ -41,8 +43,11 @@ class GridOrchestrator:
 
     async def _emit(self, event_type: str):
         if self.kafka_cb:
-            await self.kafka_cb("colossus.power.events", {
-                "event_id": str(uuid.uuid4()),
-                "event_type": event_type,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            })
+            await self.kafka_cb(
+                "colossus.power.events",
+                {
+                    "event_id": str(uuid.uuid4()),
+                    "event_type": event_type,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
+            )

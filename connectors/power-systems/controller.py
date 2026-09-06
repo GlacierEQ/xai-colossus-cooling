@@ -2,8 +2,11 @@
 Power Systems Controller — Phase 6
 Controls substations, gas turbines, UPS strings, and transfer switching.
 """
-import asyncio, logging, uuid
-from dataclasses import dataclass, field
+
+import asyncio
+import logging
+import uuid
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Dict, Optional, Callable
@@ -61,7 +64,9 @@ class PowerSystemsController:
             )
 
     async def _dispatch_turbines(self):
-        self.sources["turbine"].mw_active = min(self.sources["turbine"].mw_available, 320.0)
+        self.sources["turbine"].mw_active = min(
+            self.sources["turbine"].mw_available, 320.0
+        )
         self.stats["failovers"] += 1
         payload = {
             "event_id": str(uuid.uuid4()),
@@ -73,4 +78,7 @@ class PowerSystemsController:
             await self.kafka_cb("colossus.power.events", payload)
 
     def snapshot(self):
-        return {"sources": {k: vars(v) for k, v in self.sources.items()}, "stats": self.stats}
+        return {
+            "sources": {k: vars(v) for k, v in self.sources.items()},
+            "stats": self.stats,
+        }

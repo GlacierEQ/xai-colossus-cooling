@@ -11,7 +11,6 @@ Elon rapid iteration at Memphis scale.
 """
 
 from __future__ import annotations
-import json
 import time
 import logging
 from dataclasses import dataclass, field
@@ -33,6 +32,7 @@ class GateVerdict(Enum):
 @dataclass
 class PhysicsSnapshot:
     """Point-in-time physics state used for gate evaluation."""
+
     snapshot_id: str
     pue: float
     cop_system: float
@@ -94,15 +94,21 @@ class PhysicsGate:
 
         if pue_delta > self.PUE_DELTA_MAX:
             verdict = GateVerdict.FAIL_PUE
-            messages.append(f"PUE worsened by {pue_delta:.4f} (max allowed: {self.PUE_DELTA_MAX})")
+            messages.append(
+                f"PUE worsened by {pue_delta:.4f} (max allowed: {self.PUE_DELTA_MAX})"
+            )
 
         if cop_delta < self.COP_DELTA_MIN:
             verdict = GateVerdict.FAIL_COP
-            messages.append(f"COP dropped by {abs(cop_delta):.3f} (max allowed: {abs(self.COP_DELTA_MIN)})")
+            messages.append(
+                f"COP dropped by {abs(cop_delta):.3f} (max allowed: {abs(self.COP_DELTA_MIN)})"
+            )
 
         if exergy_delta < self.EXERGY_DELTA_MIN:
             verdict = GateVerdict.FAIL_EXERGY
-            messages.append(f"Exergy recovery dropped {abs(exergy_delta):.2%} (max: {abs(self.EXERGY_DELTA_MIN):.0%})")
+            messages.append(
+                f"Exergy recovery dropped {abs(exergy_delta):.2%} (max: {abs(self.EXERGY_DELTA_MIN):.0%})"
+            )
 
         if not after.first_law_ok:
             verdict = GateVerdict.FAIL_FIRST_LAW
@@ -117,7 +123,9 @@ class PhysicsGate:
                 rollback_triggered = True
                 verdict = GateVerdict.ROLLBACK
         else:
-            logger.info(f"PHYSICS GATE PASSED: PUE_delta={pue_delta:+.4f} COP_delta={cop_delta:+.3f}")
+            logger.info(
+                f"PHYSICS GATE PASSED: PUE_delta={pue_delta:+.4f} COP_delta={cop_delta:+.3f}"
+            )
 
         result = GateResult(
             verdict=verdict,
@@ -147,15 +155,33 @@ class PhysicsGate:
 
 if __name__ == "__main__":
     gate = PhysicsGate(rollback_fn=lambda: print("ROLLBACK EXECUTED"))
-    before = PhysicsSnapshot("pre-deploy-001", pue=1.283, cop_system=4.8,
-                              exergy_recovery_fraction=0.42, first_law_ok=True,
-                              total_cooling_kw=14800, total_it_kw=15000)
-    after_good = PhysicsSnapshot("post-deploy-001", pue=1.278, cop_system=4.9,
-                                  exergy_recovery_fraction=0.43, first_law_ok=True,
-                                  total_cooling_kw=14900, total_it_kw=15000)
-    after_bad = PhysicsSnapshot("post-deploy-002", pue=1.298, cop_system=4.5,
-                                 exergy_recovery_fraction=0.38, first_law_ok=True,
-                                 total_cooling_kw=14700, total_it_kw=15000)
+    before = PhysicsSnapshot(
+        "pre-deploy-001",
+        pue=1.283,
+        cop_system=4.8,
+        exergy_recovery_fraction=0.42,
+        first_law_ok=True,
+        total_cooling_kw=14800,
+        total_it_kw=15000,
+    )
+    after_good = PhysicsSnapshot(
+        "post-deploy-001",
+        pue=1.278,
+        cop_system=4.9,
+        exergy_recovery_fraction=0.43,
+        first_law_ok=True,
+        total_cooling_kw=14900,
+        total_it_kw=15000,
+    )
+    after_bad = PhysicsSnapshot(
+        "post-deploy-002",
+        pue=1.298,
+        cop_system=4.5,
+        exergy_recovery_fraction=0.38,
+        first_law_ok=True,
+        total_cooling_kw=14700,
+        total_it_kw=15000,
+    )
     r1 = gate.evaluate(before, after_good)
     print(f"Deploy 1: {r1.verdict.value}")
     r2 = gate.evaluate(before, after_bad)

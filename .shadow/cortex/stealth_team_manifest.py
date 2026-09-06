@@ -16,7 +16,7 @@ from typing import Callable, Optional
 
 
 class AgentRing(Enum):
-    RING_0 = 0   # Primary control (visible)
+    RING_0 = 0  # Primary control (visible)
     RING_MINUS_1 = -1  # Shadow evaluation
     RING_MINUS_2 = -2  # Behavioral evolution
     RING_MINUS_3 = -3  # Silent autonomous operation

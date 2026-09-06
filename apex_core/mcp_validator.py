@@ -5,6 +5,7 @@ Every domain request must satisfy ``schemas/mcp_request.json`` before dispatch.
 Validation is a correctness boundary, not an optional enhancement: if the schema
 engine or schema itself is unavailable, the request is refused.
 """
+
 from __future__ import annotations
 
 import json
@@ -50,7 +51,9 @@ def validate_mcp_request(request: Dict[str, Any]) -> Dict[str, Any]:
         raise ValidationError("jsonschema dependency unavailable") from exc
 
     schema = _load_schema()
-    validator = jsonschema.Draft7Validator(schema, format_checker=jsonschema.FormatChecker())
+    validator = jsonschema.Draft7Validator(
+        schema, format_checker=jsonschema.FormatChecker()
+    )
     errors = sorted(validator.iter_errors(request), key=lambda error: list(error.path))
     if errors:
         primary = errors[0]
@@ -77,12 +80,16 @@ def safe_validate(request: Dict[str, Any]) -> Dict[str, Any]:
         return {
             "status": "ERROR",
             "reason": exc.reason,
-            "request_id": request.get("request_id") if isinstance(request, dict) else None,
+            "request_id": request.get("request_id")
+            if isinstance(request, dict)
+            else None,
         }
     except Exception as exc:
         logger.exception("Unexpected error during MCP validation")
         return {
             "status": "ERROR",
             "reason": f"Internal validation error: {exc}",
-            "request_id": request.get("request_id") if isinstance(request, dict) else None,
+            "request_id": request.get("request_id")
+            if isinstance(request, dict)
+            else None,
         }

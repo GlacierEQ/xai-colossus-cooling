@@ -30,7 +30,6 @@ Usage (within an async context):
 import asyncio
 import json
 import logging
-import os
 import time
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -68,7 +67,9 @@ class AspenLogger:
         if self._running:
             return
         self._running = True
-        self._task = asyncio.create_task(self._writer_loop(), name="aspen-logger-writer")
+        self._task = asyncio.create_task(
+            self._writer_loop(), name="aspen-logger-writer"
+        )
         log.info("AspenLogger started | path=%s", self.log_path)
 
     async def flush_and_close(self) -> None:
@@ -84,10 +85,14 @@ class AspenLogger:
             try:
                 await asyncio.wait_for(self._task, timeout=10.0)
             except asyncio.TimeoutError:
-                log.error("AspenLogger flush timed out after 10 s — %d events may be lost",
-                          self._queue.qsize())
+                log.error(
+                    "AspenLogger flush timed out after 10 s — %d events may be lost",
+                    self._queue.qsize(),
+                )
         self._running = False
-        log.info("AspenLogger closed | written=%d dropped=%d", self._written, self._dropped)
+        log.info(
+            "AspenLogger closed | written=%d dropped=%d", self._written, self._dropped
+        )
 
     # ----------------------------------------------------------------------- #
     # Hot path                                                                  #
@@ -112,7 +117,8 @@ class AspenLogger:
         if depth >= _QUEUE_WARN_DEPTH:
             log.warning(
                 "AspenLogger queue depth %d >= %d — possible write stall",
-                depth, _QUEUE_WARN_DEPTH
+                depth,
+                _QUEUE_WARN_DEPTH,
             )
 
         self._queue.put_nowait(enriched)

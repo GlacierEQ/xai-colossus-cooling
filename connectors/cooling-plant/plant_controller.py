@@ -3,8 +3,9 @@ Cooling Plant Controller — Phase 5D (Unified)
 Orchestrates chillers, cooling towers, free cooling, and AI pre-cooling.
 Computes real-time PUE contribution and publishes to digital twin.
 """
-import asyncio, logging
-from datetime import datetime, timezone
+
+import asyncio
+import logging
 from typing import Callable, Optional
 
 from .chiller_plant import ChillerPlantController
@@ -65,8 +66,11 @@ class CoolingPlantController:
         snap = self.snapshot()
         pue_cooling = snap["pue_cooling_contribution"]
         if pue_cooling > PUE_TARGET:
-            logger.warning("PUE cooling contribution %.3f exceeds target %.3f",
-                           pue_cooling, PUE_TARGET)
+            logger.warning(
+                "PUE cooling contribution %.3f exceeds target %.3f",
+                pue_cooling,
+                PUE_TARGET,
+            )
 
         if self.influx:
             await self.influx.write_reading(

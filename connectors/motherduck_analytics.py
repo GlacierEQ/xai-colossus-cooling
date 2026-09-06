@@ -13,10 +13,10 @@ DuckDB-powered analytics engine for:
 
 import os
 import logging
-from datetime import datetime, timedelta
-from typing import List, Dict, Optional
+from datetime import datetime
+from typing import List, Dict
 
-logger = logging.getLogger('CONNECTOR-MOTHERDUCK')
+logger = logging.getLogger("CONNECTOR-MOTHERDUCK")
 
 
 class MotherDuckAnalyticsConnector:
@@ -26,23 +26,27 @@ class MotherDuckAnalyticsConnector:
     """
 
     def __init__(self):
-        self.token = os.getenv('MOTHERDUCK_TOKEN', '')
-        self.db_name = os.getenv('MOTHERDUCK_DB', 'colossus_cooling')
+        self.token = os.getenv("MOTHERDUCK_TOKEN", "")
+        self.db_name = os.getenv("MOTHERDUCK_DB", "colossus_cooling")
         self.conn = None
         self.connected = False
-        logger.info('MotherDuck Analytics Connector initialized')
+        logger.info("MotherDuck Analytics Connector initialized")
 
     def connect(self):
         try:
             import duckdb
-            self.conn = duckdb.connect(f'md:{self.db_name}?motherduck_token={self.token}')
+
+            self.conn = duckdb.connect(
+                f"md:{self.db_name}?motherduck_token={self.token}"
+            )
             self.connected = True
-            logger.info('MotherDuck connected ✓')
+            logger.info("MotherDuck connected ✓")
             self._init_schema()
         except Exception as e:
-            logger.warning(f'MotherDuck offline — using in-memory DuckDB: {e}')
+            logger.warning(f"MotherDuck offline — using in-memory DuckDB: {e}")
             import duckdb
-            self.conn = duckdb.connect(':memory:')
+
+            self.conn = duckdb.connect(":memory:")
             self._init_schema()
 
     def _init_schema(self):
@@ -71,17 +75,17 @@ class MotherDuckAnalyticsConnector:
             return
         rows = [
             (
-                r.get('timestamp', datetime.utcnow()),
-                r['node_id'],
-                r['zone_id'],
-                r['temp_celsius'],
-                r.get('power_kw', 0.0),
-                r.get('alert_level', 0),
+                r.get("timestamp", datetime.utcnow()),
+                r["node_id"],
+                r["zone_id"],
+                r["temp_celsius"],
+                r.get("power_kw", 0.0),
+                r.get("alert_level", 0),
             )
             for r in records
         ]
         self.conn.executemany(
-            'INSERT INTO thermal_history VALUES (?, ?, ?, ?, ?, ?)', rows
+            "INSERT INTO thermal_history VALUES (?, ?, ?, ?, ?, ?)", rows
         )
 
     def query_hot_zones(self, window_minutes: int = 60) -> List[Dict]:
@@ -101,7 +105,7 @@ class MotherDuckAnalyticsConnector:
             (window_minutes,),
         ).fetchall()
         return [
-            {'zone_id': r[0], 'avg_temp': r[1], 'peak_temp': r[2], 'events': r[3]}
+            {"zone_id": r[0], "avg_temp": r[1], "peak_temp": r[2], "events": r[3]}
             for r in result
         ]
 
@@ -119,10 +123,7 @@ class MotherDuckAnalyticsConnector:
             """,
             (days,),
         ).fetchall()
-        return [
-            {'hour': str(r[0]), 'avg_pue': r[1], 'best_pue': r[2]}
-            for r in result
-        ]
+        return [{"hour": str(r[0]), "avg_pue": r[1], "best_pue": r[2]} for r in result]
 
     def query_anomaly_patterns(self) -> List[Dict]:
         """SHERLOCK forensic: find recurring anomaly patterns."""
@@ -141,6 +142,5 @@ class MotherDuckAnalyticsConnector:
             """
         ).fetchall()
         return [
-            {'node': r[0], 'count': r[1], 'avg': r[2], 'peak': r[3]}
-            for r in result
+            {"node": r[0], "count": r[1], "avg": r[2], "peak": r[3]} for r in result
         ]

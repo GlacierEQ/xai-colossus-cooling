@@ -10,15 +10,14 @@ ORC (Organic Rankine Cycle) + Absorption Chiller integration.
 """
 
 from __future__ import annotations
-import time
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Callable, Optional
 
 logger = logging.getLogger("ExergyToMars")
 
-T_DEAD_K = 308.15      # 35°C Memphis ambient (dead state)
-T_DISTRICT_C = 90.0    # district heating delivery target
+T_DEAD_K = 308.15  # 35°C Memphis ambient (dead state)
+T_DISTRICT_C = 90.0  # district heating delivery target
 ORC_EFFICIENCY = 0.12  # organic Rankine cycle thermal→electric efficiency
 ABS_CHILLER_COP = 0.7  # absorption chiller COP (heat → cooling)
 
@@ -26,10 +25,11 @@ ABS_CHILLER_COP = 0.7  # absorption chiller COP (heat → cooling)
 @dataclass
 class WasteHeatStream:
     """A single recoverable heat stream from the cooling system."""
+
     stream_id: str
-    source: str                    # e.g. "chiller_condenser", "rack_exhaust"
-    temperature_c: float           # stream temperature
-    heat_flow_kw: float            # available heat flow
+    source: str  # e.g. "chiller_condenser", "rack_exhaust"
+    temperature_c: float  # stream temperature
+    heat_flow_kw: float  # available heat flow
 
     @property
     def temperature_k(self) -> float:
@@ -53,9 +53,10 @@ class WasteHeatStream:
 @dataclass
 class RecoveryAction:
     """A proposed or active waste heat recovery action."""
+
     action_id: str
     stream_id: str
-    method: str                        # "orc", "absorption_chiller", "district_heat"
+    method: str  # "orc", "absorption_chiller", "district_heat"
     recovered_kw: float
     revenue_usd_hr: float = 0.0
     auto_proposed: bool = False
@@ -70,11 +71,13 @@ class ExergyToMarsPowerSystem:
     - Integrates ORC (power) + Absorption Chiller (cooling) + District Heat.
     """
 
-    RECOVERY_TRIGGER_FRACTION = 0.40   # auto-propose above this
+    RECOVERY_TRIGGER_FRACTION = 0.40  # auto-propose above this
     ELECTRICITY_PRICE_USD_KWH = 0.075  # Memphis industrial rate
-    COOLING_VALUE_USD_KWH = 0.04       # value of cooling from absorption
+    COOLING_VALUE_USD_KWH = 0.04  # value of cooling from absorption
 
-    def __init__(self, revenue_callback: Optional[Callable[[RecoveryAction], None]] = None):
+    def __init__(
+        self, revenue_callback: Optional[Callable[[RecoveryAction], None]] = None
+    ):
         self.streams: dict[str, WasteHeatStream] = {}
         self.actions: list[RecoveryAction] = []
         self.revenue_callback = revenue_callback
@@ -115,36 +118,42 @@ class ExergyToMarsPowerSystem:
                 # High-grade → ORC (power generation)
                 orc_kw = self.compute_orc_output(s)
                 revenue = orc_kw * self.ELECTRICITY_PRICE_USD_KWH
-                proposals.append(RecoveryAction(
-                    action_id=f"ORC-{s.stream_id}",
-                    stream_id=s.stream_id,
-                    method="orc",
-                    recovered_kw=orc_kw,
-                    revenue_usd_hr=revenue,
-                    auto_proposed=True,
-                ))
+                proposals.append(
+                    RecoveryAction(
+                        action_id=f"ORC-{s.stream_id}",
+                        stream_id=s.stream_id,
+                        method="orc",
+                        recovered_kw=orc_kw,
+                        revenue_usd_hr=revenue,
+                        auto_proposed=True,
+                    )
+                )
             elif 60 <= s.temperature_c <= 120:
                 # Mid-grade → Absorption chiller
                 cool_kw = self.compute_absorption_cooling(s)
                 revenue = cool_kw * self.COOLING_VALUE_USD_KWH
-                proposals.append(RecoveryAction(
-                    action_id=f"ABS-{s.stream_id}",
-                    stream_id=s.stream_id,
-                    method="absorption_chiller",
-                    recovered_kw=cool_kw,
-                    revenue_usd_hr=revenue,
-                    auto_proposed=True,
-                ))
+                proposals.append(
+                    RecoveryAction(
+                        action_id=f"ABS-{s.stream_id}",
+                        stream_id=s.stream_id,
+                        method="absorption_chiller",
+                        recovered_kw=cool_kw,
+                        revenue_usd_hr=revenue,
+                        auto_proposed=True,
+                    )
+                )
             elif s.temperature_c >= 40:
                 # Low-grade → District heating
-                proposals.append(RecoveryAction(
-                    action_id=f"DH-{s.stream_id}",
-                    stream_id=s.stream_id,
-                    method="district_heat",
-                    recovered_kw=s.heat_flow_kw * 0.85,
-                    revenue_usd_hr=s.heat_flow_kw * 0.85 * 0.02,
-                    auto_proposed=True,
-                ))
+                proposals.append(
+                    RecoveryAction(
+                        action_id=f"DH-{s.stream_id}",
+                        stream_id=s.stream_id,
+                        method="district_heat",
+                        recovered_kw=s.heat_flow_kw * 0.85,
+                        revenue_usd_hr=s.heat_flow_kw * 0.85 * 0.02,
+                        auto_proposed=True,
+                    )
+                )
         return proposals
 
     def run_cycle(self) -> dict:
@@ -157,7 +166,9 @@ class ExergyToMarsPowerSystem:
         total_revenue_hr = sum(a.revenue_usd_hr for a in proposals)
 
         if recovery_fraction >= self.RECOVERY_TRIGGER_FRACTION:
-            logger.info(f"UNIVERSE FUEL: Recovery={recovery_fraction:.1%} → auto-proposing revenue ${total_revenue_hr:.2f}/hr")
+            logger.info(
+                f"UNIVERSE FUEL: Recovery={recovery_fraction:.1%} → auto-proposing revenue ${total_revenue_hr:.2f}/hr"
+            )
             if self.revenue_callback:
                 for a in proposals:
                     self.revenue_callback(a)
@@ -178,5 +189,9 @@ if __name__ == "__main__":
     system.add_stream(WasteHeatStream("COND-01", "chiller_condenser", 42.0, 18000.0))
     system.add_stream(WasteHeatStream("RACK-EXH", "rack_exhaust", 55.0, 800.0))
     result = system.run_cycle()
-    print(f"Total Heat: {result['total_heat_kw']} kW | Recovery: {result['recovery_fraction']:.1%}")
-    print(f"Second Law Eff: {result['second_law_efficiency']:.1%} | Revenue: ${result['estimated_revenue_usd_hr']}/hr")
+    print(
+        f"Total Heat: {result['total_heat_kw']} kW | Recovery: {result['recovery_fraction']:.1%}"
+    )
+    print(
+        f"Second Law Eff: {result['second_law_efficiency']:.1%} | Revenue: ${result['estimated_revenue_usd_hr']}/hr"
+    )

@@ -13,7 +13,7 @@ import asyncio
 import random
 import time
 from dataclasses import dataclass
-from typing import AsyncGenerator, Dict, List
+from typing import AsyncGenerator, List
 
 
 @dataclass
@@ -31,10 +31,7 @@ class TelemetryStreamGenerator:
     """Simulates the 800M stream telemetry feed for Colossus."""
 
     def __init__(
-        self,
-        rack_count: int = 128,
-        gpus_per_rack: int = 64,
-        noise_level: float = 0.05
+        self, rack_count: int = 128, gpus_per_rack: int = 64, noise_level: float = 0.05
     ):
         self.rack_count = rack_count
         self.gpus_per_rack = gpus_per_rack
@@ -48,7 +45,7 @@ class TelemetryStreamGenerator:
         """Generate a single node's telemetry with random walk noise."""
         noise_temp = (random.random() - 0.5) * 2.0 * self.noise_level
         noise_load = (random.random() - 0.5) * 2.0 * self.noise_level
-        
+
         # Simulated thermal lag based on load
         load = max(0.0, min(1.0, self.base_load + noise_load))
         temp = self.base_temp + (load * 20.0) + noise_temp
@@ -62,10 +59,12 @@ class TelemetryStreamGenerator:
             gpu_temp_c=round(temp, 2),
             gpu_load_pct=round(load * 100, 1),
             power_draw_w=round(power, 2),
-            coolant_flow_lpm=round(flow, 2)
+            coolant_flow_lpm=round(flow, 2),
         )
 
-    async def stream(self, interval_ms: int = 100) -> AsyncGenerator[List[TelemetryPacket], None]:
+    async def stream(
+        self, interval_ms: int = 100
+    ) -> AsyncGenerator[List[TelemetryPacket], None]:
         """Stream batches of telemetry packets."""
         while True:
             batch = []
@@ -75,7 +74,7 @@ class TelemetryStreamGenerator:
                 # Sample 1 GPU per rack to keep the sim lightweight but representative
                 g = random.randint(0, self.gpus_per_rack - 1)
                 batch.append(self._generate_node_telemetry(r, g))
-            
+
             yield batch
             await asyncio.sleep(interval_ms / 1000.0)
 
@@ -84,15 +83,20 @@ async def main():
     """Diagnostic tool for the telemetry stream."""
     generator = TelemetryStreamGenerator(rack_count=4)
     print(f"Starting Telemetry Stream [RACK_COUNT=4, NOISE={generator.noise_level}]")
-    
+
     async for batch in generator.stream(interval_ms=500):
-        print(f"\n--- Batch received at {time.strftime('%H:%M:%S')} ({len(batch)} packets) ---")
+        print(
+            f"\n--- Batch received at {time.strftime('%H:%M:%S')} ({len(batch)} packets) ---"
+        )
         for p in batch:
-            print(f"  {p.node_id} | {p.gpu_temp_c}°C | Load: {p.gpu_load_pct}% | Flow: {p.coolant_flow_lpm} LPM")
-        
+            print(
+                f"  {p.node_id} | {p.gpu_temp_c}°C | Load: {p.gpu_load_pct}% | Flow: {p.coolant_flow_lpm} LPM"
+            )
+
         # Stop after 5 batches for the diagnostic
-        if time.time() % 10 < 1: # Just a hacky way to run for a bit
+        if time.time() % 10 < 1:  # Just a hacky way to run for a bit
             pass
+
 
 if __name__ == "__main__":
     try:

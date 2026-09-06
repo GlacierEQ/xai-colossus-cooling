@@ -19,8 +19,8 @@ from typing import Any, Dict
 
 logger = logging.getLogger("ASPEN-GROVE")
 
-QUEUE_DEPTH_WARN = 1000    # emit WARNING when pending items exceeds this
-QUEUE_MAX_SIZE   = 10_000  # hard cap to prevent unbounded memory growth
+QUEUE_DEPTH_WARN = 1000  # emit WARNING when pending items exceeds this
+QUEUE_MAX_SIZE = 10_000  # hard cap to prevent unbounded memory growth
 
 
 class AspenGroveLogger:
@@ -50,7 +50,9 @@ class AspenGroveLogger:
     """
 
     def __init__(self, log_path: str = None):
-        self.log_path = log_path or os.path.expandvars("$HOME/logs/aspen_grove_audit.log")
+        self.log_path = log_path or os.path.expandvars(
+            "$HOME/logs/aspen_grove_audit.log"
+        )
         # Bug fix v1.2.0: dirname() returns '' for bare filenames (e.g. 'audit.log').
         # Only create the directory when there is actually a directory component.
         parent_dir = os.path.dirname(self.log_path)
@@ -174,7 +176,8 @@ class AspenGroveLogger:
                 logger.warning(
                     "AspenGroveLogger queue depth %d exceeds warn threshold %d — "
                     "writer may be falling behind",
-                    depth, QUEUE_DEPTH_WARN,
+                    depth,
+                    QUEUE_DEPTH_WARN,
                 )
                 self._depth_warned = True
         else:
@@ -194,7 +197,9 @@ class AspenGroveLogger:
                     self._overflow_count += 1
                     logger.error(
                         "AspenGroveLogger disk write failed (event lost, total dropped=%d): %s\n%s",
-                        self._overflow_count, exc, traceback.format_exc(),
+                        self._overflow_count,
+                        exc,
+                        traceback.format_exc(),
                     )
                 finally:
                     self._queue.task_done()

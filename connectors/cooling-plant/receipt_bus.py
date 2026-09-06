@@ -6,6 +6,7 @@ facility SCADA authority.
 
 Mechanism: receipt_bus (Library of Links impact land — colossus cooling).
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -158,7 +159,9 @@ class ReceiptBus:
         self._ledger.append(receipt.to_dict())
         return receipt
 
-    def _refuse(self, intent: ActuationIntent, reason: str, t: float) -> ActuationReceipt:
+    def _refuse(
+        self, intent: ActuationIntent, reason: str, t: float
+    ) -> ActuationReceipt:
         evidence = {"intent_id": intent.intent_id, "refuse": reason, "at": t}
         digest = hashlib.sha256(
             json.dumps(evidence, sort_keys=True, separators=(",", ":")).encode("utf-8")

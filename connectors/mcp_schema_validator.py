@@ -26,7 +26,6 @@ Usage:
 
 import json
 import logging
-import time
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -97,8 +96,11 @@ class MCPSchemaValidator:
             self._log_rejection(request, reason)
             raise SchemaValidationError(reason, request_id) from exc
 
-        log.debug("MCPRequest validated OK: type=%s id=%s",
-                  request.get("request_type"), request.get("request_id"))
+        log.debug(
+            "MCPRequest validated OK: type=%s id=%s",
+            request.get("request_type"),
+            request.get("request_id"),
+        )
         return request
 
     def safe_validate(self, request: Dict[str, Any]) -> Dict[str, Any]:
@@ -113,14 +115,17 @@ class MCPSchemaValidator:
             return {
                 "status": "ERROR",
                 "reason": exc.reason,
-                "request_id": exc.request_id or (request.get("request_id") if isinstance(request, dict) else None),
+                "request_id": exc.request_id
+                or (request.get("request_id") if isinstance(request, dict) else None),
             }
         except Exception as exc:
             log.exception("Unexpected error during MCP schema validation")
             return {
                 "status": "ERROR",
                 "reason": f"Internal validation error: {exc}",
-                "request_id": request.get("request_id") if isinstance(request, dict) else None,
+                "request_id": request.get("request_id")
+                if isinstance(request, dict)
+                else None,
             }
 
     def _log_rejection(self, request: Any, reason: str) -> None:
@@ -128,7 +133,9 @@ class MCPSchemaValidator:
         request_id = request.get("request_id") if isinstance(request, dict) else None
         log.warning(
             "MCPRequest REJECTED [%d total] | id=%s reason=%s",
-            self._rejection_count, request_id, reason,
+            self._rejection_count,
+            request_id,
+            reason,
         )
 
     @property

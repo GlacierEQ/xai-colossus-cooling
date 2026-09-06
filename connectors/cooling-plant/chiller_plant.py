@@ -3,15 +3,17 @@ Chiller Plant Controller — Phase 5D
 Magnetic-bearing centrifugal chillers, R-1234ze refrigerant, COP 7.8 target.
 Staging logic: load-based chiller sequencing for optimal COP across partial loads.
 """
-import asyncio, logging, uuid
-from dataclasses import dataclass, field
+
+import logging
+import uuid
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Dict, List, Optional, Callable
+from typing import Dict, Optional, Callable
 
 logger = logging.getLogger(__name__)
 
-NUM_CHILLERS = 12          # 12 × 120 MW cooling = 1.44 GW total
+NUM_CHILLERS = 12  # 12 × 120 MW cooling = 1.44 GW total
 CHILLER_CAPACITY_KW = 120_000
 COP_RATED = 7.8
 CHW_SUPPLY_SETPOINT_C = 7.0
@@ -19,11 +21,11 @@ CHW_RETURN_DESIGN_C = 13.0
 
 
 class ChillerState(Enum):
-    STANDBY  = "standby"
+    STANDBY = "standby"
     STARTING = "starting"
-    ONLINE   = "online"
-    TRIPPED  = "tripped"
-    MAINT    = "maintenance"
+    ONLINE = "online"
+    TRIPPED = "tripped"
+    MAINT = "maintenance"
 
 
 @dataclass
@@ -40,7 +42,11 @@ class Chiller:
 
     @property
     def kw_cooling(self) -> float:
-        return self.capacity_kw * (self.load_pct / 100) if self.state == ChillerState.ONLINE else 0.0
+        return (
+            self.capacity_kw * (self.load_pct / 100)
+            if self.state == ChillerState.ONLINE
+            else 0.0
+        )
 
     @property
     def kw_power(self) -> float:
@@ -58,19 +64,26 @@ class ChillerPlantController:
         self.kafka_cb = kafka_callback
         self.influx = influx_sink
         self.chillers: Dict[str, Chiller] = {
-            f"CH-{i+1:02d}": Chiller(unit_id=f"CH-{i+1:02d}") for i in range(NUM_CHILLERS)
+            f"CH-{i + 1:02d}": Chiller(unit_id=f"CH-{i + 1:02d}")
+            for i in range(NUM_CHILLERS)
         }
         self.running = False
         self.stats = {"stagings": 0, "trips": 0}
 
     async def set_load(self, total_kw_cooling: float):
         """Distribute cooling load across available chillers."""
-        available = [c for c in self.chillers.values()
-                     if c.state in (ChillerState.STANDBY, ChillerState.ONLINE)]
+        available = [
+            c
+            for c in self.chillers.values()
+            if c.state in (ChillerState.STANDBY, ChillerState.ONLINE)
+        ]
         capacity = len(available) * CHILLER_CAPACITY_KW
         if total_kw_cooling > capacity:
-            logger.error("COOLING OVERLOAD: %.0f kW requested, %.0f kW available",
-                         total_kw_cooling, capacity)
+            logger.error(
+                "COOLING OVERLOAD: %.0f kW requested, %.0f kW available",
+                total_kw_cooling,
+                capacity,
+            )
         # Stage on chillers as needed
         needed = total_kw_cooling
         for ch in available:
@@ -83,7 +96,9 @@ class ChillerPlantController:
                 ch.state = ChillerState.ONLINE
                 self.stats["stagings"] += 1
                 await self._emit("chiller_staged_on", {"unit": ch.unit_id})
-            ch.load_pct = min(100.0, (min(needed, ch.capacity_kw) / ch.capacity_kw) * 100)
+            ch.load_pct = min(
+                100.0, (min(needed, ch.capacity_kw) / ch.capacity_kw) * 100
+            )
             needed -= ch.kw_cooling
 
     def snapshot(self):
@@ -91,7 +106,9 @@ class ChillerPlantController:
         total_power = sum(c.kw_power for c in self.chillers.values())
         avg_cop = (total_kw / total_power) if total_power > 0 else 0.0
         return {
-            "chillers_online": sum(1 for c in self.chillers.values() if c.state == ChillerState.ONLINE),
+            "chillers_online": sum(
+                1 for c in self.chillers.values() if c.state == ChillerState.ONLINE
+            ),
             "total_kw_cooling": round(total_kw, 1),
             "total_kw_power": round(total_power, 1),
             "avg_cop": round(avg_cop, 3),
@@ -100,7 +117,12 @@ class ChillerPlantController:
 
     async def _emit(self, event: str, extra: dict = {}):
         if self.kafka_cb:
-            await self.kafka_cb("colossus.cooling.chiller", {
-                "event_id": str(uuid.uuid4()), "event_type": event,
-                "timestamp": datetime.now(timezone.utc).isoformat(), **extra,
-            })
+            await self.kafka_cb(
+                "colossus.cooling.chiller",
+                {
+                    "event_id": str(uuid.uuid4()),
+                    "event_type": event,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    **extra,
+                },
+            )

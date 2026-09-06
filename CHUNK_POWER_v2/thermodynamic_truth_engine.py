@@ -18,20 +18,21 @@ from typing import Optional
 logger = logging.getLogger("ThermoTruthEngine")
 
 # ─── Constants ────────────────────────────────────────────────────────────────
-CP_WATER = 4186.0          # J/(kg·K)
-T_AMBIENT_K = 308.15       # 35°C Memphis design ambient
+CP_WATER = 4186.0  # J/(kg·K)
+T_AMBIENT_K = 308.15  # 35°C Memphis design ambient
 T_DEAD_STATE_K = T_AMBIENT_K
-DENSITY_WATER = 998.0      # kg/m³ at ~20°C
+DENSITY_WATER = 998.0  # kg/m³ at ~20°C
 
 
 @dataclass
 class ThermalState:
     """Live snapshot of one cooling zone."""
+
     zone_id: str
-    t_supply_c: float        # °C
-    t_return_c: float        # °C
-    flow_kg_s: float         # kg/s
-    gpu_power_kw: float      # kW IT load
+    t_supply_c: float  # °C
+    t_return_c: float  # °C
+    flow_kg_s: float  # kg/s
+    gpu_power_kw: float  # kW IT load
     timestamp: float = field(default_factory=time.time)
 
     @property
@@ -65,6 +66,7 @@ class ThermalState:
 @dataclass
 class PlantState:
     """Aggregate plant-level thermodynamic state."""
+
     total_it_kw: float
     total_cooling_kw: float
     total_pump_kw: float
@@ -107,7 +109,7 @@ class ThermodynamicTruthEngine:
     PUE_TARGET = 1.30
     PUE_CRITICAL = 1.50
     COOLING_EFF_MIN = 0.90
-    EXERGY_RECOVERY_TARGET = 0.40   # 40% waste heat recovery minimum
+    EXERGY_RECOVERY_TARGET = 0.40  # 40% waste heat recovery minimum
 
     def __init__(self):
         self.zones: dict[str, ThermalState] = {}
@@ -126,9 +128,13 @@ class ThermodynamicTruthEngine:
     def update_plant(self, plant: PlantState) -> None:
         self.plant = plant
         if not plant.first_law_check():
-            self._violations.append(f"FIRST LAW VIOLATION: cooling {plant.total_cooling_kw:.1f} kW < IT {plant.total_it_kw:.1f} kW")
+            self._violations.append(
+                f"FIRST LAW VIOLATION: cooling {plant.total_cooling_kw:.1f} kW < IT {plant.total_it_kw:.1f} kW"
+            )
         if plant.pue > self.PUE_CRITICAL:
-            self._violations.append(f"PUE CRITICAL: {plant.pue:.3f} > {self.PUE_CRITICAL}")
+            self._violations.append(
+                f"PUE CRITICAL: {plant.pue:.3f} > {self.PUE_CRITICAL}"
+            )
 
     def approve_setpoint_change(self, proposed_pue_delta: float) -> bool:
         """
@@ -136,7 +142,9 @@ class ThermodynamicTruthEngine:
         This is the software embodiment of the CI/CD physics gate.
         """
         if proposed_pue_delta > 0.01:
-            logger.error(f"SETPOINT REJECTED: PUE delta {proposed_pue_delta:.4f} > 0.01 threshold")
+            logger.error(
+                f"SETPOINT REJECTED: PUE delta {proposed_pue_delta:.4f} > 0.01 threshold"
+            )
             return False
         return True
 
@@ -166,17 +174,30 @@ class ThermodynamicTruthEngine:
                     for v in r["violations"]:
                         logger.error(v)
                 else:
-                    logger.debug(f"PUE={r['pue']:.3f} COP={r['cop']:.2f} Exergy={r['total_exergy_kw']:.1f}kW ✓")
+                    logger.debug(
+                        f"PUE={r['pue']:.3f} COP={r['cop']:.2f} Exergy={r['total_exergy_kw']:.1f}kW ✓"
+                    )
             await asyncio.sleep(interval_s)
 
 
 # ─── Demo ─────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     engine = ThermodynamicTruthEngine()
-    zone = ThermalState("R01-M1", t_supply_c=18.0, t_return_c=30.0, flow_kg_s=1.5, gpu_power_kw=75.0)
+    zone = ThermalState(
+        "R01-M1", t_supply_c=18.0, t_return_c=30.0, flow_kg_s=1.5, gpu_power_kw=75.0
+    )
     engine.update_zone(zone)
-    plant = PlantState(total_it_kw=15000, total_cooling_kw=14800, total_pump_kw=300, total_chiller_kw=4200)
+    plant = PlantState(
+        total_it_kw=15000,
+        total_cooling_kw=14800,
+        total_pump_kw=300,
+        total_chiller_kw=4200,
+    )
     engine.update_plant(plant)
     r = engine.report()
-    print(f"PUE: {r['pue']:.3f} | COP: {r['cop']:.2f} | Exergy: {r['total_exergy_kw']:.1f} kW")
-    print(f"First Law: {'OK' if r['first_law_ok'] else 'VIOLATION'} | Violations: {len(r['violations'])}")
+    print(
+        f"PUE: {r['pue']:.3f} | COP: {r['cop']:.2f} | Exergy: {r['total_exergy_kw']:.1f} kW"
+    )
+    print(
+        f"First Law: {'OK' if r['first_law_ok'] else 'VIOLATION'} | Violations: {len(r['violations'])}"
+    )

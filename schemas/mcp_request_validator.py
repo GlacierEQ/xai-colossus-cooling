@@ -7,6 +7,7 @@ The router accepts two intentionally different wire shapes:
 A request must satisfy the contract for the shape it actually uses. Validation
 never falls open because a dependency is missing.
 """
+
 from __future__ import annotations
 
 import json
@@ -15,7 +16,9 @@ from typing import Any, Dict, Tuple
 
 try:
     import jsonschema
-except ImportError:  # pragma: no cover - exercised by fail-closed branch in minimal envs
+except (
+    ImportError
+):  # pragma: no cover - exercised by fail-closed branch in minimal envs
     jsonschema = None
 
 
@@ -48,7 +51,10 @@ class MCPRequestValidator:
             return self._validate_jsonrpc(request_payload)
         if "request_type" in request_payload:
             return self._validate_domain(request_payload)
-        return False, "Payload is neither a canonical domain envelope nor JSON-RPC request"
+        return (
+            False,
+            "Payload is neither a canonical domain envelope nor JSON-RPC request",
+        )
 
     def _validate_domain(self, payload: Dict[str, Any]) -> Tuple[bool, str]:
         if jsonschema is None:
@@ -58,7 +64,9 @@ class MCPRequestValidator:
                 self.schema,
                 format_checker=jsonschema.FormatChecker(),
             )
-            errors = sorted(validator.iter_errors(payload), key=lambda error: list(error.path))
+            errors = sorted(
+                validator.iter_errors(payload), key=lambda error: list(error.path)
+            )
         except Exception as exc:
             return False, f"Domain schema validation unavailable: {exc}"
         if errors:
@@ -85,15 +93,19 @@ class MCPRequestValidator:
         if unknown:
             return False, f"Unknown top-level field detected: '{unknown[0]}'"
 
-        params = payload.get("params", {})
-        if not isinstance(params, dict):
-            return False, "Field 'params' must be a JSON object"
+        if "params" in payload:
+            params = payload["params"]
+            if not isinstance(params, dict):
+                return False, "Field 'params' must be a JSON object"
 
-        if method == "tools/call":
-            name = params.get("name")
-            arguments = params.get("arguments", {})
-            if not isinstance(name, str) or not name.strip():
-                return False, "Field 'params.name' must be a non-empty string for tools/call"
-            if not isinstance(arguments, dict):
-                return False, "Field 'params.arguments' must be a JSON object"
+            if method == "tools/call":
+                name = params.get("name")
+                arguments = params.get("arguments", {})
+                if not isinstance(name, str) or not name.strip():
+                    return (
+                        False,
+                        "Field 'params.name' must be a non-empty string for tools/call",
+                    )
+                if not isinstance(arguments, dict):
+                    return False, "Field 'params.arguments' must be a JSON object"
         return True, "VALIDATED"

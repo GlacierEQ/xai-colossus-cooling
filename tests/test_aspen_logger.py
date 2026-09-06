@@ -32,7 +32,9 @@ async def test_log_event_overhead_under_5ms():
 
         await logger.flush_and_close()
 
-        assert elapsed_ms < 5.0, f"log_event took {elapsed_ms:.2f} ms — exceeds 5 ms target"
+        assert elapsed_ms < 5.0, (
+            f"log_event took {elapsed_ms:.2f} ms — exceeds 5 ms target"
+        )
 
 
 @pytest.mark.asyncio
@@ -60,6 +62,7 @@ async def test_all_events_written_on_flush():
 async def test_queue_depth_warning(caplog):
     """A warning must be emitted when queue depth >= 1000."""
     import logging
+
     with tempfile.TemporaryDirectory() as tmpdir:
         logger = AspenLogger(log_path=f"{tmpdir}/warn.jsonl")
         # Don't start the background writer — queue accumulates

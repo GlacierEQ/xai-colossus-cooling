@@ -1,4 +1,5 @@
 """Immersion cooling — microfluidic efficiency uses real heat-transfer math."""
+
 from __future__ import annotations
 
 import asyncio

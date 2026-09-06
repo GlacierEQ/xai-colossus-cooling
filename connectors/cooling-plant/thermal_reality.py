@@ -6,6 +6,7 @@ PUE-style efficiency index from cooling power vs IT load.
 
 No placeholders. SI units.
 """
+
 from __future__ import annotations
 
 # Specific heat capacity of liquid water (J / (kg·K))
@@ -127,9 +128,7 @@ def assess_loop(
         "flow_kg_s": round(flow, 4),
         "flow_lpm": flow_lpm,
         "pue_cooling": (
-            round(state.pue_cooling, 4)
-            if state.pue_cooling != float("inf")
-            else None
+            round(state.pue_cooling, 4) if state.pue_cooling != float("inf") else None
         ),
         "required_flow_kg_s_for_delta": (
             round(required_flow_kg_s(it_load_mw, state.delta_t_c), 4)

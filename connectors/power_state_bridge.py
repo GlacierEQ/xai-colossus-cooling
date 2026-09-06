@@ -32,6 +32,7 @@ PUE_ALERT_THRESHOLD = 1.45
 @dataclass
 class ZoneThermalBudget:
     """Per-zone thermal budget derived from energy power_state snapshot."""
+
     zone_id: str
     total_draw_kw: float
     compute_kw: float
@@ -57,13 +58,19 @@ class PowerStateBridge:
     per-zone thermal budget objects for the cooling orchestration layer.
     """
 
-    def __init__(self, power_state_path: str = "../xai-colossus-energy/schemas/power_state_snapshot.json"):
+    def __init__(
+        self,
+        power_state_path: str = "../xai-colossus-energy/schemas/power_state_snapshot.json",
+    ):
         self.power_state_path = power_state_path
         self._snapshot: dict = {}
         self._budgets: dict[str, ZoneThermalBudget] = {}
 
-    def load_from_file(self, path: Optional[str] = None) -> dict[str, ZoneThermalBudget]:
+    def load_from_file(
+        self, path: Optional[str] = None
+    ) -> dict[str, ZoneThermalBudget]:
         import pathlib
+
         p = pathlib.Path(path or self.power_state_path)
         with open(p) as f:
             return self.load_from_dict(json.load(f))
@@ -73,7 +80,11 @@ class PowerStateBridge:
         self._snapshot = snapshot
         pue = snapshot.get("pue")
         if pue and pue > PUE_ALERT_THRESHOLD:
-            logger.warning("PUE=%.3f exceeds threshold %.2f — cooling efficiency degraded", pue, PUE_ALERT_THRESHOLD)
+            logger.warning(
+                "PUE=%.3f exceeds threshold %.2f — cooling efficiency degraded",
+                pue,
+                PUE_ALERT_THRESHOLD,
+            )
 
         self._budgets = {}
         for zone_data in snapshot.get("zones", []):

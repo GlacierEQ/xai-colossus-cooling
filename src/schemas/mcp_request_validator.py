@@ -1,30 +1,32 @@
 import json
-import json
 import os
 from typing import Dict, Any, Tuple
 
 # Attempt to load standard jsonschema library, fallback to native if not present
 try:
     import jsonschema
+
     HAS_JSONSCHEMA = True
 except ImportError:
     HAS_JSONSCHEMA = False
 
 # Domain envelope used by thermal/swarm agents (distinct from JSON-RPC tools/call).
-DOMAIN_REQUEST_TYPES = frozenset({
-    "request_zone_snapshot",
-    "emergency_broadcast",
-    "emergency_blast",
-    "predictive_sweep",
-    "zone_budget_override",
-    "fusion_dispatch",
-    "thermal_status",
-    "ZONE_SNAPSHOT",
-    "EMERGENCY",
-    "THERMAL_ALERT",
-    "ENERGY_DISPATCH",
-    "SECURITY_INCIDENT",
-})
+DOMAIN_REQUEST_TYPES = frozenset(
+    {
+        "request_zone_snapshot",
+        "emergency_broadcast",
+        "emergency_blast",
+        "predictive_sweep",
+        "zone_budget_override",
+        "fusion_dispatch",
+        "thermal_status",
+        "ZONE_SNAPSHOT",
+        "EMERGENCY",
+        "THERMAL_ALERT",
+        "ENERGY_DISPATCH",
+        "SECURITY_INCIDENT",
+    }
+)
 
 
 class MCPRequestValidator:
@@ -37,6 +39,7 @@ class MCPRequestValidator:
 
     Guarantees structural validity prior to dispatcher ingestion.
     """
+
     def __init__(self, schema_path: str = None):
         self.schema_path = schema_path or os.path.join(
             os.path.dirname(__file__), "mcp_request.json"
@@ -109,7 +112,10 @@ class MCPRequestValidator:
             return False, "Field 'jsonrpc' must be exactly '2.0'"
 
         # 3. Validate method type
-        if not isinstance(payload["method"], str) or len(payload["method"].strip()) == 0:
+        if (
+            not isinstance(payload["method"], str)
+            or len(payload["method"].strip()) == 0
+        ):
             return False, "Field 'method' must be a non-empty string"
 
         # 4. Validate id type

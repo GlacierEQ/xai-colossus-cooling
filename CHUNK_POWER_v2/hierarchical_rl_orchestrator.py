@@ -16,7 +16,6 @@ import random
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional
 
 logger = logging.getLogger("HierarchicalRL")
 
@@ -34,11 +33,12 @@ class ChillerState(Enum):
 @dataclass
 class ChillerAgent:
     """Individual chiller — autonomous RL agent."""
+
     chiller_id: int
     capacity_kw: float = 1500.0
     state: ChillerState = ChillerState.STANDBY
-    load_fraction: float = 0.0      # 0.0 – 1.0
-    cop: float = 5.5                # baseline COP
+    load_fraction: float = 0.0  # 0.0 – 1.0
+    cop: float = 5.5  # baseline COP
     leaving_water_temp_c: float = 12.0
     entering_water_temp_c: float = 18.0
     trip_count: int = 0
@@ -79,12 +79,17 @@ class ChillerAgent:
 @dataclass
 class ZoneCoordinator:
     """Mid-level coordinator for a group of chillers (≤20 per zone)."""
+
     zone_id: str
     chillers: list[ChillerAgent] = field(default_factory=list)
 
     @property
     def total_cooling_kw(self) -> float:
-        return sum(c.actual_cooling_kw for c in self.chillers if c.state == ChillerState.RUNNING)
+        return sum(
+            c.actual_cooling_kw
+            for c in self.chillers
+            if c.state == ChillerState.RUNNING
+        )
 
     @property
     def running_count(self) -> int:
@@ -92,7 +97,11 @@ class ZoneCoordinator:
 
     def dispatch(self, zone_demand_kw: float) -> None:
         """Distribute load across chillers in this zone using N+1 logic."""
-        eligible = [c for c in self.chillers if c.state not in (ChillerState.TRIPPED, ChillerState.MAINTENANCE)]
+        eligible = [
+            c
+            for c in self.chillers
+            if c.state not in (ChillerState.TRIPPED, ChillerState.MAINTENANCE)
+        ]
         if not eligible:
             logger.error(f"Zone {self.zone_id}: NO eligible chillers — CRITICAL")
             return
@@ -122,13 +131,15 @@ class HierarchicalRLOrchestrator:
         self.zones: list[ZoneCoordinator] = []
         self._build_zones()
         self._stress_test_queue: list[int] = []
-        logger.info(f"HierarchicalRLOrchestrator: {self.TOTAL_CHILLERS} chillers across {self.ZONE_COUNT} zones — ACTIVE")
+        logger.info(
+            f"HierarchicalRLOrchestrator: {self.TOTAL_CHILLERS} chillers across {self.ZONE_COUNT} zones — ACTIVE"
+        )
 
     def _build_zones(self):
         chiller_id = 1
         zone_sizes = [20, 20, 20, 20, 20, 19]  # sums to 119
         for i, size in enumerate(zone_sizes):
-            zone = ZoneCoordinator(zone_id=f"Z{i+1:02d}")
+            zone = ZoneCoordinator(zone_id=f"Z{i + 1:02d}")
             for _ in range(size):
                 zone.chillers.append(ChillerAgent(chiller_id=chiller_id))
                 chiller_id += 1
@@ -170,7 +181,9 @@ class HierarchicalRLOrchestrator:
                     if random.random() < 0.02:
                         c.state = ChillerState.TRIPPED
                         c.trip_count += 1
-                        logger.warning(f"Chiller {c.chiller_id} TRIPPED during stress test — expected, N+1 absorbs")
+                        logger.warning(
+                            f"Chiller {c.chiller_id} TRIPPED during stress test — expected, N+1 absorbs"
+                        )
                     else:
                         c.state = ChillerState.RUNNING
                     tested.append(c.chiller_id)
@@ -185,8 +198,12 @@ class HierarchicalRLOrchestrator:
                     logger.info(f"Chiller {c.chiller_id} recovered to STANDBY")
 
     def status_report(self) -> dict:
-        running = sum(1 for z in self.zones for c in z.chillers if c.state == ChillerState.RUNNING)
-        tripped = sum(1 for z in self.zones for c in z.chillers if c.state == ChillerState.TRIPPED)
+        running = sum(
+            1 for z in self.zones for c in z.chillers if c.state == ChillerState.RUNNING
+        )
+        tripped = sum(
+            1 for z in self.zones for c in z.chillers if c.state == ChillerState.TRIPPED
+        )
         return {
             "total_chillers": self.TOTAL_CHILLERS,
             "running": running,
@@ -205,7 +222,9 @@ class HierarchicalRLOrchestrator:
             if tested:
                 logger.info(f"Stress-tested chillers: {tested}")
             s = self.status_report()
-            logger.info(f"Plant: {s['running']}/{s['total_chillers']} running | COP={s['system_cop']} | Cooling={s['total_cooling_kw']} kW")
+            logger.info(
+                f"Plant: {s['running']}/{s['total_chillers']} running | COP={s['system_cop']} | Cooling={s['total_cooling_kw']} kW"
+            )
             await asyncio.sleep(interval_s)
 
 
@@ -213,4 +232,6 @@ if __name__ == "__main__":
     orch = HierarchicalRLOrchestrator()
     orch.dispatch_plant(15000.0)
     s = orch.status_report()
-    print(f"Running: {s['running']}/{s['total_chillers']} | COP: {s['system_cop']} | Cooling: {s['total_cooling_kw']} kW")
+    print(
+        f"Running: {s['running']}/{s['total_chillers']} | COP: {s['system_cop']} | Cooling: {s['total_cooling_kw']} kW"
+    )

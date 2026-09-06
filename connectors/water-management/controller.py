@@ -12,7 +12,11 @@ Source priority order:
 AI pre-cooling: Grok 15-min lookahead triggers valve pre-staging.
 All events → Kafka colossus.cooling.events + InfluxDB colossus_water_flow.
 """
-import asyncio, logging, time, uuid
+
+import asyncio
+import logging
+import time
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -23,26 +27,26 @@ logger = logging.getLogger(__name__)
 
 class WaterSource(Enum):
     MUNICIPAL = "municipal"
-    CISTERN   = "cistern"
-    RO_PLANT  = "ro_plant"
-    AWG       = "awg"
-    NONE      = "none"
+    CISTERN = "cistern"
+    RO_PLANT = "ro_plant"
+    AWG = "awg"
+    NONE = "none"
 
 
 class SourceStatus(Enum):
-    ONLINE    = "online"
-    DEGRADED  = "degraded"
-    OFFLINE   = "offline"
-    UNKNOWN   = "unknown"
+    ONLINE = "online"
+    DEGRADED = "degraded"
+    OFFLINE = "offline"
+    UNKNOWN = "unknown"
 
 
 @dataclass
 class SourceState:
     source: WaterSource
     status: SourceStatus = SourceStatus.UNKNOWN
-    flow_lpm: float = 0.0          # L/min actual
+    flow_lpm: float = 0.0  # L/min actual
     pressure_bar: float = 0.0
-    tds_ppm: float = 0.0           # Total Dissolved Solids
+    tds_ppm: float = 0.0  # Total Dissolved Solids
     temp_c: float = 18.0
     last_updated: float = field(default_factory=time.time)
 
@@ -51,7 +55,7 @@ class SourceState:
 class ValveState:
     valve_id: str
     source: WaterSource
-    open_pct: float = 0.0          # 0=closed, 100=fully open
+    open_pct: float = 0.0  # 0=closed, 100=fully open
     target_pct: float = 0.0
     actuating: bool = False
 
@@ -62,20 +66,28 @@ class WaterManagementController:
     Monitors all sources, switches automatically on failure,
     integrates AI pre-cooling predictions.
     """
-    SOURCE_PRIORITY = [WaterSource.MUNICIPAL, WaterSource.CISTERN,
-                       WaterSource.RO_PLANT, WaterSource.AWG]
+
+    SOURCE_PRIORITY = [
+        WaterSource.MUNICIPAL,
+        WaterSource.CISTERN,
+        WaterSource.RO_PLANT,
+        WaterSource.AWG,
+    ]
 
     # Design flow rates (L/min)
     DESIGN_FLOW = {
         WaterSource.MUNICIPAL: 2500.0,
-        WaterSource.CISTERN:   1800.0,   # controlled draw to preserve 72hr autonomy
-        WaterSource.RO_PLANT:  347.0,    # 500K L/day = 347 L/min
-        WaterSource.AWG:       14.0,     # 2000 L/day minimum array
+        WaterSource.CISTERN: 1800.0,  # controlled draw to preserve 72hr autonomy
+        WaterSource.RO_PLANT: 347.0,  # 500K L/day = 347 L/min
+        WaterSource.AWG: 14.0,  # 2000 L/day minimum array
     }
 
-    def __init__(self, kafka_callback: Optional[Callable] = None,
-                 influx_sink=None,
-                 precooling_engine=None):
+    def __init__(
+        self,
+        kafka_callback: Optional[Callable] = None,
+        influx_sink=None,
+        precooling_engine=None,
+    ):
         self.kafka_cb = kafka_callback
         self.influx = influx_sink
         self.precooling = precooling_engine
@@ -84,12 +96,17 @@ class WaterManagementController:
         }
         self._valves: Dict[WaterSource, ValveState] = {
             s: ValveState(valve_id=f"valve-{s.value}", source=s)
-            for s in WaterSource if s != WaterSource.NONE
+            for s in WaterSource
+            if s != WaterSource.NONE
         }
         self._active_source = WaterSource.MUNICIPAL
         self._running = False
-        self._stats = {"source_switches": 0, "precooling_triggers": 0,
-                       "valve_ops": 0, "failovers": 0}
+        self._stats = {
+            "source_switches": 0,
+            "precooling_triggers": 0,
+            "valve_ops": 0,
+            "failovers": 0,
+        }
 
     async def start(self):
         self._running = True
@@ -125,12 +142,15 @@ class WaterManagementController:
     async def _poll_sources(self):
         """In production: read from Modbus/OPC-UA sensor network."""
         import random
+
         for source, state in self._sources.items():
-            state.flow_lpm     = round(self.DESIGN_FLOW[source] * random.uniform(0.97, 1.03), 2)
+            state.flow_lpm = round(
+                self.DESIGN_FLOW[source] * random.uniform(0.97, 1.03), 2
+            )
             state.pressure_bar = round(random.uniform(5.8, 6.5), 3)
-            state.tds_ppm      = round(random.uniform(1.0, 8.0), 1)
-            state.temp_c       = round(random.uniform(17.5, 18.5), 2)
-            state.status       = SourceStatus.ONLINE
+            state.tds_ppm = round(random.uniform(1.0, 8.0), 1)
+            state.temp_c = round(random.uniform(17.5, 18.5), 2)
+            state.status = SourceStatus.ONLINE
             state.last_updated = time.time()
 
     async def _evaluate_failover(self):
@@ -164,28 +184,49 @@ class WaterManagementController:
         delta_pct = forecast.get("valve_prestage_pct", 10.0)
         v = self._valves[self._active_source]
         v.target_pct = min(100.0, v.open_pct + delta_pct)
-        logger.info(f"[WaterCtrl] Pre-staging {self._active_source.value} valve -> {v.target_pct}%")
+        logger.info(
+            f"[WaterCtrl] Pre-staging {self._active_source.value} valve -> {v.target_pct}%"
+        )
 
     async def _close_all_valves(self):
         for v in self._valves.values():
             v.target_pct = 0.0
 
-    async def _emit_event(self, event_type: str, from_source: WaterSource, to_source: WaterSource):
-        payload = {"event_id": str(uuid.uuid4()), "event_type": event_type,
-                   "from_source": from_source.value, "to_source": to_source.value,
-                   "timestamp": datetime.now(timezone.utc).isoformat(),
-                   "active_source": self._active_source.value}
+    async def _emit_event(
+        self, event_type: str, from_source: WaterSource, to_source: WaterSource
+    ):
+        payload = {
+            "event_id": str(uuid.uuid4()),
+            "event_type": event_type,
+            "from_source": from_source.value,
+            "to_source": to_source.value,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "active_source": self._active_source.value,
+        }
         if self.kafka_cb:
             asyncio.create_task(self.kafka_cb("colossus.cooling.events", payload))
         if self.influx:
-            asyncio.create_task(self.influx.write_reading(
-                measurement="colossus_water_flow",
-                tags={"event_type": event_type, "source": to_source.value},
-                fields={"active_source": to_source.value, "failover": int(event_type == "failover")}))
+            asyncio.create_task(
+                self.influx.write_reading(
+                    measurement="colossus_water_flow",
+                    tags={"event_type": event_type, "source": to_source.value},
+                    fields={
+                        "active_source": to_source.value,
+                        "failover": int(event_type == "failover"),
+                    },
+                )
+            )
 
     def status(self) -> dict:
-        return {"active_source": self._active_source.value,
-                "sources": {s.value: {"status": self._sources[s].status.value,
-                                       "flow_lpm": self._sources[s].flow_lpm}
-                             for s in WaterSource if s != WaterSource.NONE},
-                "stats": self._stats}
+        return {
+            "active_source": self._active_source.value,
+            "sources": {
+                s.value: {
+                    "status": self._sources[s].status.value,
+                    "flow_lpm": self._sources[s].flow_lpm,
+                }
+                for s in WaterSource
+                if s != WaterSource.NONE
+            },
+            "stats": self._stats,
+        }

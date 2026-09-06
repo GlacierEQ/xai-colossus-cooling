@@ -1,4 +1,5 @@
 """First-principles thermal tests for Colossus cooling reality module."""
+
 from __future__ import annotations
 
 import importlib.util

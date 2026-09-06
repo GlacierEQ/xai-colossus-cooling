@@ -14,25 +14,30 @@ Usage:
   python main.py --dry-run      # no external connections
   python main.py --zone zone-01 # single zone
 """
-import asyncio, logging, os, argparse, signal
+
+import asyncio
+import logging
+import os
+import argparse
+import signal
 from datetime import datetime, timezone
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-    datefmt="%Y-%m-%dT%H:%M:%S"
+    datefmt="%Y-%m-%dT%H:%M:%S",
 )
 logger = logging.getLogger("colossus.main")
 
 # ── Environment ──────────────────────────────────────────────
-GROK_API_KEY       = os.getenv("GROK_API_KEY", "")
-GROK_WS_URL        = os.getenv("GROK_WS_URL", "wss://api.x.ai/v1/realtime")
-KAFKA_BOOTSTRAP    = os.getenv("KAFKA_BOOTSTRAP", "localhost:9092")
-INFLUX_URL         = os.getenv("INFLUX_URL", "http://localhost:8086")
-INFLUX_TOKEN       = os.getenv("INFLUX_TOKEN", "")
-INFLUX_ORG         = os.getenv("INFLUX_ORG", "glaciereq")
-INFLUX_BUCKET      = os.getenv("INFLUX_BUCKET", "colossus")
-GPU_MODEL          = os.getenv("GPU_MODEL", "H200")
+GROK_API_KEY = os.getenv("GROK_API_KEY", "")
+GROK_WS_URL = os.getenv("GROK_WS_URL", "wss://api.x.ai/v1/realtime")
+KAFKA_BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP", "localhost:9092")
+INFLUX_URL = os.getenv("INFLUX_URL", "http://localhost:8086")
+INFLUX_TOKEN = os.getenv("INFLUX_TOKEN", "")
+INFLUX_ORG = os.getenv("INFLUX_ORG", "glaciereq")
+INFLUX_BUCKET = os.getenv("INFLUX_BUCKET", "colossus")
+GPU_MODEL = os.getenv("GPU_MODEL", "H200")
 
 
 class ColossusOrchestrator:
@@ -54,18 +59,16 @@ class ColossusOrchestrator:
         from connectors.water_management.grok_precooling import GrokPreCoolingEngine
 
         kafka_cb = self._kafka_emit if not self.dry_run else self._noop
-        influx   = None if self.dry_run else await self._make_influx()
+        influx = None if self.dry_run else await self._make_influx()
 
         # Grok pre-cooling
-        self.precooling = GrokPreCoolingEngine(
-            api_key=GROK_API_KEY, ws_url=GROK_WS_URL
-        )
+        self.precooling = GrokPreCoolingEngine(api_key=GROK_API_KEY, ws_url=GROK_WS_URL)
 
         # Water management
         self.water_ctrl = WaterManagementController(
             kafka_callback=kafka_cb,
             influx_sink=influx,
-            precooling_engine=self.precooling
+            precooling_engine=self.precooling,
         )
 
         # GPU cluster
@@ -73,7 +76,7 @@ class ColossusOrchestrator:
             kafka_callback=kafka_cb,
             influx_sink=influx,
             precooling_engine=self.precooling,
-            gpu_model=GPU_MODEL
+            gpu_model=GPU_MODEL,
         )
         await self.gpu_agent.initialize()
 
@@ -98,8 +101,10 @@ class ColossusOrchestrator:
         while not self._shutdown.is_set():
             await asyncio.sleep(60)
             water_status = self.water_ctrl.status()
-            logger.info(f"[Health] Water={water_status['active_source']} "
-                        f"GPU_snapshots={self.gpu_agent.stats().get('snapshots_published', 0)}")
+            logger.info(
+                f"[Health] Water={water_status['active_source']} "
+                f"GPU_snapshots={self.gpu_agent.stats().get('snapshots_published', 0)}"
+            )
 
     async def _shutdown_waiter(self):
         await self._shutdown.wait()
@@ -111,7 +116,8 @@ class ColossusOrchestrator:
     async def _kafka_emit(self, topic: str, payload: dict):
         logger.debug(f"[Kafka] -> {topic}: {list(payload.keys())}")
 
-    async def _noop(self, *args, **kwargs): pass
+    async def _noop(self, *args, **kwargs):
+        pass
 
     async def _make_influx(self):
         """Returns None stub — replace with real InfluxDB client."""

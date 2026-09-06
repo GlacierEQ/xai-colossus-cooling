@@ -2,6 +2,7 @@
 UPS Manager — Phase 6
 Monitors UPS strings and ride-through autonomy.
 """
+
 from dataclasses import dataclass
 
 UPS_STRINGS = 24

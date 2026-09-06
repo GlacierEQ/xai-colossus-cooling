@@ -2,12 +2,16 @@
 NodeRegistry — thread-safe node capability store with heartbeat TTL.
 Nodes self-register on startup; middleware prunes dead nodes every 30s.
 """
-import threading, time, logging
+
+import threading
+import time
+import logging
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 HEARTBEAT_TTL = 90
+
 
 @dataclass
 class NodeEntry:
@@ -36,22 +40,31 @@ class NodeEntry:
         return self.is_alive() and self.status != "unavailable"
 
     def effective_load(self) -> float:
-        return max(self.load_pct, (self.active_requests / max(self.max_concurrent_requests, 1)) * 100)
+        return max(
+            self.load_pct,
+            (self.active_requests / max(self.max_concurrent_requests, 1)) * 100,
+        )
 
 
 class NodeRegistry:
     def __init__(self, prune_interval: int = 30):
         self._nodes: Dict[str, NodeEntry] = {}
         self._lock = threading.RLock()
-        threading.Thread(target=self._prune_loop, args=(prune_interval,), daemon=True).start()
+        threading.Thread(
+            target=self._prune_loop, args=(prune_interval,), daemon=True
+        ).start()
 
     def register(self, entry: NodeEntry) -> None:
         with self._lock:
             entry.registered_at = entry.last_heartbeat = time.time()
             self._nodes[entry.node_id] = entry
-            logger.info(f"[Registry] + {entry.node_id} pillar={entry.pillar} caps={entry.capabilities}")
+            logger.info(
+                f"[Registry] + {entry.node_id} pillar={entry.pillar} caps={entry.capabilities}"
+            )
 
-    def heartbeat(self, node_id: str, status: str = "healthy", load_pct: float = 0.0) -> bool:
+    def heartbeat(
+        self, node_id: str, status: str = "healthy", load_pct: float = 0.0
+    ) -> bool:
         with self._lock:
             if node_id not in self._nodes:
                 return False
@@ -73,8 +86,11 @@ class NodeRegistry:
 
     def by_pillar(self, pillar: str) -> List[NodeEntry]:
         with self._lock:
-            return [n for n in self._nodes.values()
-                    if n.is_available() and (pillar == "all" or n.pillar == pillar)]
+            return [
+                n
+                for n in self._nodes.values()
+                if n.is_available() and (pillar == "all" or n.pillar == pillar)
+            ]
 
     def increment_active(self, node_id: str):
         with self._lock:
@@ -84,7 +100,9 @@ class NodeRegistry:
     def decrement_active(self, node_id: str):
         with self._lock:
             if node_id in self._nodes:
-                self._nodes[node_id].active_requests = max(0, self._nodes[node_id].active_requests - 1)
+                self._nodes[node_id].active_requests = max(
+                    0, self._nodes[node_id].active_requests - 1
+                )
 
     def stats(self) -> dict:
         with self._lock:
@@ -92,7 +110,12 @@ class NodeRegistry:
             pillars = {}
             for n in self._nodes.values():
                 pillars[n.pillar] = pillars.get(n.pillar, 0) + 1
-            return {"total": len(self._nodes), "alive": alive, "dead": len(self._nodes) - alive, "by_pillar": pillars}
+            return {
+                "total": len(self._nodes),
+                "alive": alive,
+                "dead": len(self._nodes) - alive,
+                "by_pillar": pillars,
+            }
 
     def _prune_loop(self, interval: int):
         while True:

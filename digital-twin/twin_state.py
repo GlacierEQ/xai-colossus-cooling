@@ -3,7 +3,10 @@ Twin State Composer — Phase 7 Digital Twin (Hardened)
 Aggregates live snapshots from Water, GPU, Power, and Cooling agents
 into one unified facility state document pushed to InfluxDB + Kafka.
 """
-import asyncio, logging, uuid
+
+import asyncio
+import logging
+import uuid
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, Optional
 
@@ -22,15 +25,15 @@ class TwinStateComposer:
         influx_sink=None,
         kafka_callback: Optional[Callable] = None,
     ):
-        self.water     = water_agent
-        self.gpu       = gpu_agent
-        self.power     = power_controller
-        self.turbines  = turbine_fleet
-        self.ats       = ats_controller
-        self.ups       = ups_manager
-        self.influx    = influx_sink
-        self.kafka_cb  = kafka_callback
-        self.running   = False
+        self.water = water_agent
+        self.gpu = gpu_agent
+        self.power = power_controller
+        self.turbines = turbine_fleet
+        self.ats = ats_controller
+        self.ups = ups_manager
+        self.influx = influx_sink
+        self.kafka_cb = kafka_callback
+        self.running = False
         self._last_state: Dict = {}
 
     # ------------------------------------------------------------------
@@ -41,12 +44,12 @@ class TwinStateComposer:
         state = {
             "snapshot_id": str(uuid.uuid4()),
             "timestamp": now,
-            "water":   self.water.snapshot()   if self.water   else {},
-            "gpu":     self.gpu.snapshot()     if self.gpu     else {},
-            "power":   self.power.snapshot()   if self.power   else {},
-            "turbines":self.turbines.snapshot() if self.turbines else {},
-            "ats":     self.ats.transfer_report() if self.ats  else {},
-            "ups":     self.ups.snapshot()     if self.ups     else {},
+            "water": self.water.snapshot() if self.water else {},
+            "gpu": self.gpu.snapshot() if self.gpu else {},
+            "power": self.power.snapshot() if self.power else {},
+            "turbines": self.turbines.snapshot() if self.turbines else {},
+            "ats": self.ats.transfer_report() if self.ats else {},
+            "ups": self.ups.snapshot() if self.ups else {},
         }
         state["kpis"] = self._compute_kpis(state)
         self._last_state = state
@@ -60,7 +63,9 @@ class TwinStateComposer:
         # PUE: total facility power / IT power
         try:
             power_data = state["power"]
-            total_mw = sum(v["mw_active"] for v in power_data.get("sources", {}).values())
+            total_mw = sum(
+                v["mw_active"] for v in power_data.get("sources", {}).values()
+            )
             it_mw = state["gpu"].get("total_power_kw", 0) / 1000
             kpis["pue"] = round(total_mw / it_mw, 4) if it_mw > 0 else 0.0
         except Exception:

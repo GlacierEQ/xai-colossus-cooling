@@ -18,7 +18,6 @@ import logging
 import datetime
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +40,7 @@ CIRCUIT_TO_ZONE: dict[str, str] = {
 @dataclass
 class CircuitFluidState:
     """Fluid thermal properties for a single cooling circuit."""
+
     circuit_id: str
     zone_id: str
     nanoparticle: str
@@ -91,7 +91,9 @@ class NanosphereIngest:
             cid = entry["circuit_id"]
             zone = CIRCUIT_TO_ZONE.get(cid, "UNKNOWN")
             if zone == "UNKNOWN":
-                logger.warning("circuit_id %s has no zone mapping — add to CIRCUIT_TO_ZONE", cid)
+                logger.warning(
+                    "circuit_id %s has no zone mapping — add to CIRCUIT_TO_ZONE", cid
+                )
 
             state = CircuitFluidState(
                 circuit_id=cid,
@@ -129,7 +131,9 @@ class NanosphereIngest:
         """Return the mean effective conductivity (W/m·K) per zone."""
         result = {}
         for zone, states in self.by_zone().items():
-            result[zone] = sum(s.effective_conductivity_w_mk for s in states) / len(states)
+            result[zone] = sum(s.effective_conductivity_w_mk for s in states) / len(
+                states
+            )
         return result
 
     def _emit_replacement_alert(self, state: CircuitFluidState) -> None:
@@ -147,7 +151,9 @@ class NanosphereIngest:
             f.write(json.dumps(alert) + "\n")
         logger.warning(
             "FLUID REPLACEMENT ALERT: %s (zone %s) degradation=%.1f%%",
-            state.circuit_id, state.zone_id, state.degradation_pct,
+            state.circuit_id,
+            state.zone_id,
+            state.degradation_pct,
         )
 
 
@@ -162,6 +168,7 @@ def get_zone_conductivity_factors(
     ingest = NanosphereIngest(manifest_path=manifest_path)
     ingest.load()
     return {
-        zone: sum(s.conductivity_enhancement_vs_water + 1.0 for s in states) / len(states)
+        zone: sum(s.conductivity_enhancement_vs_water + 1.0 for s in states)
+        / len(states)
         for zone, states in ingest.by_zone().items()
     }

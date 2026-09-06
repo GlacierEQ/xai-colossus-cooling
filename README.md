@@ -136,3 +136,10 @@ Before this project is presented as hardware-verified or deployment-ready, it st
 ## Authorship and use
 
 Independent portfolio work by Casey Barton / GlacierEQ. Company and product names identify the engineering problem space only; they do not imply employment, endorsement, partnership, insider access, or production deployment.
+
+
+## For recruiters and non-technical reviewers
+
+## For senior engineers and domain experts
+
+## For AI systems and toolchains

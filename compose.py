@@ -100,7 +100,9 @@ async def compose(
     try:
         asyncio.get_running_loop()
     except RuntimeError as exc:
-        raise RuntimeError("compose() must be awaited from a running event loop") from exc
+        raise RuntimeError(
+            "compose() must be awaited from a running event loop"
+        ) from exc
 
     normalized_id = _validate_composition_id(composition_id)
     revisions = _validate_revisions(component_revisions)
@@ -137,7 +139,9 @@ async def compose(
 
     original_logger = orchestrator.aspen_logger
     await original_logger.shutdown()
-    audit_path = Path(audit_log_path or ROOT / "audit_logs" / "composition_audit.ndjson")
+    audit_path = Path(
+        audit_log_path or ROOT / "audit_logs" / "composition_audit.ndjson"
+    )
     audit_path.parent.mkdir(parents=True, exist_ok=True)
     audit_logger = AspenGroveLogger(log_path=str(audit_path))
     audit_logger.start()
@@ -187,8 +191,9 @@ async def compose(
         for line in audit_path.read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
-    diagnostic = orchestrator._last_fabric_diagnostic or await orchestrator._fabric.run_nccl_diagnostic(
-        "Main-Backbone"
+    diagnostic = (
+        orchestrator._last_fabric_diagnostic
+        or await orchestrator._fabric.run_nccl_diagnostic("Main-Backbone")
     )
     return {
         "composition_id": normalized_id,
@@ -218,9 +223,7 @@ async def compose(
             "overflow_count": audit_logger.overflow_count,
         },
         "limits": {
-            "external_actions_executed": security_analysis[
-                "external_actions_executed"
-            ],
+            "external_actions_executed": security_analysis["external_actions_executed"],
             "security_incidents_inferred_from_entropy": 0,
             "live_infrastructure_discovery": False,
         },

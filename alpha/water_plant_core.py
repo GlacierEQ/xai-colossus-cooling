@@ -22,12 +22,13 @@ Target Metrics:
 import math
 import json
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import List, Optional
 from enum import Enum
 
 
 class FlowRegime(Enum):
     """Operating modes for pump station."""
+
     IDLE = 0
     NOMINAL = 1
     SURGE_PREDICTIVE = 2
@@ -37,8 +38,9 @@ class FlowRegime(Enum):
 
 class PumpArchitecture(Enum):
     """Pump redundancy patterns."""
-    N_PLUS_ONE = 1     # 2 pumps: 1 active, 1 hot standby
-    N_PLUS_TWO = 2     # 3 pumps: 1 active, 2 hot standby (APEX COLOSSUS)
+
+    N_PLUS_ONE = 1  # 2 pumps: 1 active, 1 hot standby
+    N_PLUS_TWO = 2  # 3 pumps: 1 active, 2 hot standby (APEX COLOSSUS)
     ACTIVE_ACTIVE = 3  # All pumps share load (complex, only for ultra-scale)
 
 
@@ -46,17 +48,19 @@ class PumpArchitecture(Enum):
 # CORE MODULES
 # =========================================================================
 
+
 @dataclass
 class PumpModule:
     """Pump station (primary + redundant)."""
+
     name: str
-    capacity_lpm: float          # Max volumetric capacity
-    head_bar: float              # Pressure head
+    capacity_lpm: float  # Max volumetric capacity
+    head_bar: float  # Pressure head
     flow_regime: FlowRegime = FlowRegime.NOMINAL
     redundancy: PumpArchitecture = PumpArchitecture.N_PLUS_TWO
     active_pump_count: int = 1
     efficiency_pct: float = 92.0  # Variable frequency drive (VFD) baseline
-    
+
     @property
     def actual_lpm(self) -> float:
         """Current output considering regime and redundancy."""
@@ -68,7 +72,7 @@ class PumpModule:
             FlowRegime.THERMAL_REBALANCE: 0.85,
         }[self.flow_regime]
         return self.capacity_lpm * regime_factor * (self.active_pump_count / 3.0)
-    
+
     @property
     def power_kw(self) -> float:
         """Electrical power draw (VFD modulated)."""
@@ -80,18 +84,19 @@ class PumpModule:
 @dataclass
 class HeatExchangerModule:
     """Plate frame or shell-tube heat exchanger array."""
+
     name: str
     exchanger_type: str  # "plate_frame" or "shell_tube"
-    count: int           # Number of HX units in series/parallel
-    capacity_mw: float   # Heat rejection capacity (MW)
-    approach_c: float    # Pinch point (approach temperature)
+    count: int  # Number of HX units in series/parallel
+    capacity_mw: float  # Heat rejection capacity (MW)
+    approach_c: float  # Pinch point (approach temperature)
     efficiency_pct: float = 94.0
-    
+
     @property
     def effective_capacity_mw(self) -> float:
         """Derated capacity accounting for fouling, age."""
         return self.capacity_mw * (self.efficiency_pct / 100.0)
-    
+
     @property
     def pressure_drop_bar(self) -> float:
         """Pressure drop across HX array."""
@@ -102,6 +107,7 @@ class HeatExchangerModule:
 @dataclass
 class FilterModule:
     """Multi-stage filtration (coarse → fine → polishing)."""
+
     name: str
     stages: List[str] = field(default_factory=lambda: ["100µm", "25µm", "5µm"])
     flow_capacity_lpm: float = 12000.0
@@ -109,21 +115,21 @@ class FilterModule:
     bypass_threshold_bar: float = 2.0  # Opens bypass valve at this pressure
     service_hours_total: float = 8000.0
     service_hours_remaining: float = 7500.0
-    
+
     @property
     def fouling_factor(self) -> float:
         """Pressure drop multiplier as filter clogs (0.0 = clean, 1.0 = saturated)."""
         return 1.0 - (self.service_hours_remaining / self.service_hours_total)
-    
+
     @property
     def actual_pressure_drop_bar(self) -> float:
         """Current pressure drop including fouling."""
         return self.pressure_drop_nominal_bar * (1.0 + (3.0 * self.fouling_factor))
-    
+
     def service_alert(self) -> Optional[str]:
         """Alert if filter needs replacement soon."""
         if self.actual_pressure_drop_bar >= self.bypass_threshold_bar:
-            return f"🔴 CRITICAL: Filter bypass triggered. Replace within 24 hours."
+            return "🔴 CRITICAL: Filter bypass triggered. Replace within 24 hours."
         if self.service_hours_remaining < 500:
             return f"🟡 WARNING: Filter scheduled replacement in {self.service_hours_remaining:.0f} hours."
         return None
@@ -132,6 +138,7 @@ class FilterModule:
 @dataclass
 class ManifoldModule:
     """Flow distribution manifold (GPU rack branch feeds)."""
+
     name: str
     total_racks: int = 27778
     racks_per_branch: int = 8
@@ -140,12 +147,12 @@ class ManifoldModule:
     pressure_inlet_bar: float = 3.5
     flow_per_rack_lpm: float = 4.3  # Nominal per rack
     distribution_variance_pct: float = 1.2  # Target < 2%
-    
+
     @property
     def total_flow_lpm(self) -> float:
         """Total manifold throughput."""
         return self.total_racks * self.flow_per_rack_lpm
-    
+
     @property
     def pressure_drop_bar(self) -> float:
         """Pressure drop across full manifold tree."""
@@ -153,7 +160,7 @@ class ManifoldModule:
         base_drop = 0.4
         branch_loss = 0.1 * math.log10(self.branch_count)
         return base_drop + branch_loss
-    
+
     def branch_balance_report(self) -> dict:
         """Flow balance across all branches."""
         nominal_per_branch = self.total_flow_lpm / self.branch_count
@@ -164,25 +171,28 @@ class ManifoldModule:
             "variance_pct": self.distribution_variance_pct,
             "min_branch_flow": round(nominal_per_branch * (1.0 - variance), 2),
             "max_branch_flow": round(nominal_per_branch * (1.0 + variance), 2),
-            "max_variance_tolerance": "< 2% APEX SLA" if self.distribution_variance_pct < 2.0 else "⚠️  EXCEEDS SLA",
+            "max_variance_tolerance": "< 2% APEX SLA"
+            if self.distribution_variance_pct < 2.0
+            else "⚠️  EXCEEDS SLA",
         }
 
 
 @dataclass
 class ReturnAggregationModule:
     """Return header and tank aggregation."""
+
     name: str
     return_tank_volume_liters: float = 50000.0  # 50K L (return buffer)
     flow_capacity_lpm: float = 12000.0
     heat_rejection_staged: bool = True  # Cooling happens at inlet HX
     pressure_outlet_bar: float = 0.5  # Slight vacuum to prevent cavitation
     residence_time_sec: float = 250.0  # ~4 min residence
-    
+
     @property
     def tank_residence_sec(self) -> float:
         """Time water sits in return tank (allows degassing, settling)."""
         return (self.return_tank_volume_liters / self.flow_capacity_lpm) * 60.0
-    
+
     @property
     def degassing_efficiency_pct(self) -> float:
         """Passive degassing via residence time (target > 95%)."""
@@ -198,9 +208,10 @@ class ReturnAggregationModule:
 # WATER PLANT SYSTEM (VERTICAL STACK INTEGRATION)
 # =========================================================================
 
+
 class VerticalWaterPlantStack:
     """Complete water cooling plant with modular vertical architecture."""
-    
+
     def __init__(self):
         # TIER 1: INLET PUMP STATION
         self.pump_inlet = PumpModule(
@@ -210,39 +221,39 @@ class VerticalWaterPlantStack:
             redundancy=PumpArchitecture.N_PLUS_TWO,
             active_pump_count=2,  # 2 of 3 active for flow
         )
-        
+
         # TIER 2: PRIMARY HEAT EXCHANGER ARRAY
         self.hx_primary = HeatExchangerModule(
             name="Primary Heat Exchanger Array (8-unit plate frame)",
             exchanger_type="plate_frame",
             count=8,
             capacity_mw=8.5,  # Each HX: ~1.06 MW
-            approach_c=3.0,   # 3°C pinch point
+            approach_c=3.0,  # 3°C pinch point
         )
-        
+
         # TIER 3: FINE FILTRATION
         self.filter_main = FilterModule(
             name="Multi-stage Filtration (100µm → 25µm → 5µm)",
             flow_capacity_lpm=12000.0,
             pressure_drop_nominal_bar=0.3,
         )
-        
+
         # TIER 4: DISTRIBUTION MANIFOLD
         self.manifold = ManifoldModule(
             name="GPU Rack Distribution Manifold (27,778 feeds)",
             total_racks=27778,
             racks_per_branch=8,
         )
-        
+
         # TIER 5: RETURN AGGREGATION
         self.return_agg = ReturnAggregationModule(
             name="Return Header & Tank Aggregation",
             return_tank_volume_liters=50000.0,
         )
-        
+
         # Secondary coolant loop (optional immersion cooling)
         self.hx_secondary = Optional[HeatExchangerModule]
-    
+
     def pressure_profile(self) -> dict:
         """Calculate pressure at each stage (diagnostic)."""
         p_inlet = 1.0  # Atm
@@ -252,7 +263,7 @@ class VerticalWaterPlantStack:
         p_at_manifold_inlet = p_after_filter - 0.1  # Small line loss
         p_after_manifold = p_at_manifold_inlet - self.manifold.pressure_drop_bar
         p_return = self.return_agg.pressure_outlet_bar
-        
+
         return {
             "inlet": round(p_inlet, 2),
             "after_pump": round(p_after_pump, 2),
@@ -263,13 +274,13 @@ class VerticalWaterPlantStack:
             "return": round(p_return, 2),
             "total_system_dp_bar": round(p_after_pump - p_return, 2),
         }
-    
+
     def total_power_draw_kw(self) -> float:
         """Total plant electrical power (pump + HX fans if air-cooled)."""
         pump_power = self.pump_inlet.power_kw
         hx_fan_power = 85.0  # Rough estimate for 8.5 MW HX cooling tower fans
         return pump_power + hx_fan_power
-    
+
     def efficiency_metrics(self) -> dict:
         """System-wide efficiency report."""
         return {
@@ -280,7 +291,7 @@ class VerticalWaterPlantStack:
             "return_degassing_efficiency_pct": self.return_agg.degassing_efficiency_pct,
             "system_overall_efficiency_pct": 93.5,  # Integrated
         }
-    
+
     def full_system_report(self) -> dict:
         """Complete water plant diagnostic report."""
         return {
@@ -299,7 +310,9 @@ class VerticalWaterPlantStack:
                 "tier_2_hx_primary": {
                     "name": self.hx_primary.name,
                     "capacity_mw": self.hx_primary.capacity_mw,
-                    "effective_capacity_mw": round(self.hx_primary.effective_capacity_mw, 2),
+                    "effective_capacity_mw": round(
+                        self.hx_primary.effective_capacity_mw, 2
+                    ),
                     "approach_c": self.hx_primary.approach_c,
                     "pressure_drop_bar": round(self.hx_primary.pressure_drop_bar, 2),
                     "status": "✅ 8-UNIT PLATE FRAME ARRAY",
@@ -307,10 +320,16 @@ class VerticalWaterPlantStack:
                 "tier_3_filtration": {
                     "name": self.filter_main.name,
                     "stages": self.filter_main.stages,
-                    "current_pressure_drop_bar": round(self.filter_main.actual_pressure_drop_bar, 2),
-                    "service_hours_remaining": round(self.filter_main.service_hours_remaining),
+                    "current_pressure_drop_bar": round(
+                        self.filter_main.actual_pressure_drop_bar, 2
+                    ),
+                    "service_hours_remaining": round(
+                        self.filter_main.service_hours_remaining
+                    ),
                     "alert": self.filter_main.service_alert(),
-                    "status": "✅ NOMINAL" if not self.filter_main.service_alert() else "⚠️  ACTION REQUIRED",
+                    "status": "✅ NOMINAL"
+                    if not self.filter_main.service_alert()
+                    else "⚠️  ACTION REQUIRED",
                 },
                 "tier_4_manifold": {
                     "name": self.manifold.name,
@@ -325,7 +344,9 @@ class VerticalWaterPlantStack:
                     "name": self.return_agg.name,
                     "tank_volume_liters": self.return_agg.return_tank_volume_liters,
                     "residence_time_sec": round(self.return_agg.tank_residence_sec, 1),
-                    "degassing_efficiency_pct": round(self.return_agg.degassing_efficiency_pct, 1),
+                    "degassing_efficiency_pct": round(
+                        self.return_agg.degassing_efficiency_pct, 1
+                    ),
                     "status": "✅ PASSIVE DEGASSING + SETTLING",
                 },
             },
@@ -340,12 +361,13 @@ class VerticalWaterPlantStack:
 # CLI
 # =========================================================================
 
+
 def main():
     plant = VerticalWaterPlantStack()
     report = plant.full_system_report()
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("   XAI COLOSSUS WATER PLANT — VERTICAL MODULAR STACK ARCHITECTURE")
-    print("="*70)
+    print("=" * 70)
     print(json.dumps(report, indent=2))
     print("\n✅ Water plant ready for commissioning.\n")
 
