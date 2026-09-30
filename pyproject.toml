@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "xai-colossus-cooling"
+version = "1.0.0"
+description = "GPU rack power management, thermal throttle detection, job scheduling with preemption, and cluster utilization metrics."
+requires-python = ">=3.11"
+dependencies = []
+keywords = ["gpu-cluster", "datacenter", "power-management", "scheduling"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
